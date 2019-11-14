@@ -1,0 +1,13 @@
+object:
+  name: nginx-7db9fccd9b-jlpw4
+  namespace: default
+  kind: pod
+#  label:
+#    key: run
+#    value: nginx
+#  file: ./something.yaml
+
+tests:
+- type: AssertJSONPath
+  jsonPath: ".spec.nodeName"
+  value: "docker-desktop"
