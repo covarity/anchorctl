@@ -25,18 +25,20 @@ import (
 // testCmd represents the test command
 var testCmd = &cobra.Command{
 	Use:   "test",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Command to run Anchor tests",
+	Long: `Test takes in the test steps as config and executes the tests in order.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+Example usage: anchorctl test -f test.yaml
+
+Kinds of tests include:
+- kubetest: Requires --kubeconfig flag to be set. Runs tests against the current context of a kube cluster.
+			Types of tests include: 
+			- AssetJSONPath: Example fields are type: AssertJSONPath, jsonPath: ".spec.nodeName", value: "docker-desktop"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		kubeconfig, err := cmd.Flags().GetString("kubeconfig")
+		kind, err := cmd.Flags().GetString("kind")
 		if err != nil {
-			return fmt.Errorf("Could not parse kubeconfig flag", err.Error())
+			return fmt.Errorf("Could not parse kind flag", err.Error())
 		}
 
 		testfile, err := cmd.Flags().GetString("file")
@@ -44,39 +46,19 @@ to quickly create a Cobra application.`,
 			return fmt.Errorf("Could not parse testfile flag", err.Error())
 		}
 
-		client, err := kubernetes.GetKubeClient(false, kubeconfig)
-		if err != nil {
-			return fmt.Errorf("Could not get client", err.Error())
-		}
+		switch kind {
 
-		kubeTest, err := kubernetes.DecodeTestFile(testfile)
-		if err != nil {
-			return fmt.Errorf("Could not decode test file", err.Error())
-		}
-
-		pod, err := kubernetes.GetObject(client, &kubeTest.Object)
-		if err != nil {
-			return fmt.Errorf("Failed getting object", err)
-		}
-
-		for _, i := range kubeTest.Tests {
-			switch i["type"]{
-
-			case "AssertJSONPath":
-				_, logs, err := kubernetes.AssertJsonpath(pod, i["jsonPath"], i["value"])
-
-				if err != nil {
-					return fmt.Errorf("AssertJsonPath Failed", err)
-				}
-
-				for _, i := range logs {
-					cmd.Println(i)
-				}
-
-			default:
-				cmd.Println(i["type"] + " is not a valid test type")
-
+		case "kubetest":
+			kubeconfig, err := cmd.Flags().GetString("kubeconfig")
+			if err != nil {
+				return fmt.Errorf("Could not parse kubeconfig flag", err.Error())
 			}
+
+			err = kubernetes.Assert(cmd, kubeconfig, testfile)
+			if err != nil {
+				return fmt.Errorf("KubeTest errored out", err.Error())
+			}
+
 		}
 
 		return nil
@@ -95,6 +77,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	testCmd.Flags().StringP("file", "f", "", "Input file with the tests.")
-	testCmd.Flags().StringP("kubeconfig", "k", "~/.kube/config", "Path to kubeconfig file")
-	testCmd.Flags().StringP("jsonpath", "j", "{.metadata.name}", "JSONPath string")
+	testCmd.Flags().StringP("kubeconfig", "c", "~/.kube/config", "Path to kubeconfig file")
+	testCmd.Flags().StringP("kind", "k", "~/.kube/config", "Path to kubeconfig file")
 }

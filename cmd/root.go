@@ -38,13 +38,9 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
   Use:   "anchorctl",
-  Short: "A brief description of your application",
-  Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+  Short: "anchorctl is the CLI tool for running kubetests and networktests",
+  Long: `A CLI tool which can be used in conjunction with Anchor Controller to run Kubernetes tests and network tests
+         Accepts CRDs, or files as input and executes those tests in order.`,
   // Uncomment the following line if your bare application
   // has an action associated with it:
   //	Run: func(cmd *cobra.Command, args []string) { },

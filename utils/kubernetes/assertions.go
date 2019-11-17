@@ -2,17 +2,19 @@ package kubernetes
 
 import (
 	"bytes"
+	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/jsonpath"
 )
 
-func AssertJsonpath(object interface{}, path, value string) (bool, []string, error) {
+func assertJsonpath(cmd *cobra.Command, object interface{}, path, value string) (bool, error) {
 
 	jp := jsonpath.New("assertJsonpath")
 	jp.AllowMissingKeys(true)
 	err := jp.Parse("{" + path + "}")
 
 	if err != nil {
-		return false, nil, err
+		cmd.PrintErrln("Cannot parse jsonpath. ", err)
+		return false, err
 	}
 
 	buf := new(bytes.Buffer)
@@ -20,13 +22,17 @@ func AssertJsonpath(object interface{}, path, value string) (bool, []string, err
 	err = jp.Execute(buf, object)
 
 	if err != nil {
-		return false, nil, err
+		cmd.PrintErrln("Error executing jsonpath on object. ", err)
+		return false, err
 	}
 
 	if buf.String() == value {
-		return true, []string{"PASSED: " + path + " " + value}, nil
+		cmd.Println("PASSED: " + path + " " + value)
+		return true, nil
 	}
 
-	return false, []string{"FAILED: expected" + value + " got " + buf.String()}, nil
+	cmd.Println("FAILED: expected" + value + " got " + buf.String())
+
+	return false, nil
 
 }
