@@ -11,6 +11,7 @@ func assertJsonpath(cmd *cobra.Command, object interface{}, path, value string) 
 	jp := jsonpath.New("assertJsonpath")
 	jp.AllowMissingKeys(true)
 	err := jp.Parse("{" + path + "}")
+	passed := true
 
 	if err != nil {
 		cmd.PrintErrln("Cannot parse jsonpath. ", err)
@@ -19,20 +20,35 @@ func assertJsonpath(cmd *cobra.Command, object interface{}, path, value string) 
 
 	buf := new(bytes.Buffer)
 
-	err = jp.Execute(buf, object)
+	objects := getSlice(cmd, object)
 
-	if err != nil {
-		cmd.PrintErrln("Error executing jsonpath on object. ", err)
-		return false, err
+	for _, i := range objects {
+
+		err = jp.Execute(buf, i)
+
+		if err != nil {
+			cmd.PrintErrln("Error executing jsonpath on object. ", err)
+			passed = false
+			break
+		}
+
+		if buf.String() == value {
+			cmd.Println("PASSED: " + path + " " + value)
+		} else {
+			cmd.Println("FAILED: expected" + value + " got " + buf.String())
+			passed = false
+		}
+
+		buf.Reset()
+
 	}
 
-	if buf.String() == value {
-		cmd.Println("PASSED: " + path + " " + value)
-		return true, nil
-	}
+	return passed, err
 
-	cmd.Println("FAILED: expected" + value + " got " + buf.String())
+}
 
-	return false, nil
+func assertDeny(){
+
+
 
 }

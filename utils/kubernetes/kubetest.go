@@ -17,7 +17,7 @@ func Assert(cmd *cobra.Command, kubeconfig, testfile string) error {
 		return fmt.Errorf("Could not decode test file", err.Error())
 	}
 
-	pod, err := getObject(client, &kubeTest.Object)
+	object, err := getObject(client, kubeTest)
 	if err != nil {
 		return fmt.Errorf("Failed getting object", err)
 	}
@@ -26,11 +26,13 @@ func Assert(cmd *cobra.Command, kubeconfig, testfile string) error {
 		switch i["type"]{
 
 		case "AssertJSONPath":
-			_, err := assertJsonpath(cmd, pod, i["jsonPath"], i["value"])
+			_, err := assertJsonpath(cmd, object, i["jsonPath"], i["value"])
 
 			if err != nil {
 				return fmt.Errorf("AssertJsonPath Failed", err)
 			}
+
+		case "AssertValidation":
 
 		default:
 			cmd.Println(i["type"] + " is not a valid test type")
