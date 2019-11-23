@@ -16,3 +16,7 @@ type label struct {
 	Key string
 	Value string
 }
+
+type kubeMetadata struct {
+	Metadata metadata
+}

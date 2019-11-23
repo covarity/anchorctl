@@ -5,6 +5,10 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/extensions/v1beta1"
+	"log"
+
 	//v1 "k8s.io/api/core/v1"
 	//"k8s.io/api/extensions/v1beta1"
 	//"log"
@@ -16,8 +20,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	//"log"
-	//"k8s.io/client-go/kubernetes/scheme"
-	//appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -102,55 +106,88 @@ func getSlice(cmd *cobra.Command, t interface{}) []interface{} {
 		for i := 0; i < s.Len(); i++ {
 			slicedInterface = append(slicedInterface, s.Index(i).Interface())
 		}
+
+	default:
+		slicedInterface = append(slicedInterface, t)
 	}
 
 	return slicedInterface
 }
 
 // ApplyFile mimics kubectl apply -f. Takes in a path to a file and applies that object to the cluster and returns the applied object.
-//func ApplyFile(client *kubernetes.Clientset, pathToFile string) (objectMetadata, interface{}, error) {
-//
-//	decode := scheme.Codecs.UniversalDeserializer().Decode
-//	bytes, err := ioutil.ReadFile(pathToFile)
-//	objectMetadata := objectMetadata{}
-//	var object interface{}
-//
-//	if err != nil {
-//		log.Fatal(fmt.Sprintf("Error while reading the file. Err was: %s", err))
-//	}
-//
-//	obj, _, err := decode(bytes, nil, nil)
-//
-//	if err != nil {
-//		log.Fatal(fmt.Sprintf("Error while decoding YAML object. Err was: %s", err))
-//	}
-//
-//	err = yaml.Unmarshal(bytes, &objectMetadata)
-//
-//	if err != nil {
-//		log.Fatal(fmt.Sprintf("Error while unmarshalling Object Metadata. Err was: %s", err))
-//	}
-//
-//	switch obj.(type) {
-//	case *appsv1.Deployment:
-//		deploy := obj.(*appsv1.Deployment)
-//		object, err = client.AppsV1().Deployments(objectMetadata.Metadata.Namespace).Create(deploy)
-//	case *v1.Pod:
-//		pod := obj.(*v1.Pod)
-//		object, err = client.CoreV1().Pods(objectMetadata.Metadata.Namespace).Create(pod)
-//	case *v1.Service:
-//		service := obj.(*v1.Service)
-//		object, err = client.CoreV1().Services(objectMetadata.Metadata.Namespace).Create(service)
-//	case *v1beta1.Ingress:
-//		ingress := obj.(*v1beta1.Ingress)
-//		object, err = client.ExtensionsV1beta1().Ingresses(objectMetadata.Metadata.Namespace).Create(ingress)
-//	case *v1beta1.DaemonSet:
-//		ds := obj.(*v1beta1.DaemonSet)
-//		object, err = client.ExtensionsV1beta1().DaemonSets(objectMetadata.Metadata.Namespace).Create(ds)
-//	default:
-//		object, err = nil, fmt.Errorf("ApplyFile for kind %s is not implemented", objectMetadata.Kind)
-//	}
-//
-//	return objectMetadata, object, err
-//}
-//
+func applyAction(client *kubernetes.Clientset, pathToFile, action string) (*kubeMetadata, interface{}, error) {
+
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+
+	bytes, err := ioutil.ReadFile(pathToFile)
+	objectMetadata := &kubeMetadata{}
+	var object interface{}
+
+	if err != nil {
+		log.Fatal(fmt.Sprintf("Error while reading the file. Err was: %s", err))
+	}
+
+	obj, _, err := decode(bytes, nil, nil)
+
+	if err != nil {
+		log.Fatal(fmt.Sprintf("Error while decoding YAML object. Err was: %s", err))
+	}
+
+	err = yaml.Unmarshal(bytes, &objectMetadata)
+
+	if err != nil {
+		log.Fatal(fmt.Sprintf("Error while unmarshalling Object Metadata. Err was: %s", err))
+	}
+
+	switch obj.(type) {
+	case *appsv1.Deployment:
+		deploy := obj.(*appsv1.Deployment)
+		if action == "CREATE" {
+			object, err = client.AppsV1().Deployments(objectMetadata.Metadata.Namespace).Create(deploy)
+		} else if action == "UPDATE" {
+			object, err = client.AppsV1().Deployments(objectMetadata.Metadata.Namespace).Update(deploy)
+		} else {
+			err = client.AppsV1().Deployments(objectMetadata.Metadata.Namespace).Delete(objectMetadata.Metadata.Name, &metav1.DeleteOptions{})
+		}
+	case *v1.Pod:
+		pod := obj.(*v1.Pod)
+		if action == "CREATE" {
+			object, err = client.CoreV1().Pods(objectMetadata.Metadata.Namespace).Create(pod)
+		} else if action == "UPDATE" {
+			object, err = client.CoreV1().Pods(objectMetadata.Metadata.Namespace).Update(pod)
+		} else {
+			err = client.CoreV1().Pods(objectMetadata.Metadata.Namespace).Delete(objectMetadata.Metadata.Name, &metav1.DeleteOptions{})
+		}
+	case *v1.Service:
+		service := obj.(*v1.Service)
+		if action == "CREATE" {
+			object, err = client.CoreV1().Services(objectMetadata.Metadata.Namespace).Create(service)
+		} else if action == "UPDATE" {
+			object, err = client.CoreV1().Services(objectMetadata.Metadata.Namespace).Update(service)
+		} else {
+			err = client.CoreV1().Services(objectMetadata.Metadata.Namespace).Delete(objectMetadata.Metadata.Name, &metav1.DeleteOptions{})
+		}
+	case *v1beta1.Ingress:
+		ingress := obj.(*v1beta1.Ingress)
+		if action == "CREATE" {
+			object, err = client.ExtensionsV1beta1().Ingresses(objectMetadata.Metadata.Namespace).Create(ingress)
+		} else if action == "UPDATE" {
+			object, err = client.ExtensionsV1beta1().Ingresses(objectMetadata.Metadata.Namespace).Update(ingress)
+		} else {
+			err = client.ExtensionsV1beta1().Ingresses(objectMetadata.Metadata.Namespace).Delete(objectMetadata.Metadata.Name, &metav1.DeleteOptions{})
+		}
+	case *v1beta1.DaemonSet:
+		ds := obj.(*v1beta1.DaemonSet)
+		if action == "CREATE" {
+			object, err = client.ExtensionsV1beta1().DaemonSets(objectMetadata.Metadata.Namespace).Create(ds)
+		} else if action == "UPDATE" {
+			object, err = client.ExtensionsV1beta1().DaemonSets(objectMetadata.Metadata.Namespace).Update(ds)
+		} else {
+			err = client.ExtensionsV1beta1().DaemonSets(objectMetadata.Metadata.Namespace).Delete(objectMetadata.Metadata.Name, &metav1.DeleteOptions{})
+		}
+	default:
+		object, err = nil, fmt.Errorf("ApplyAction for kind is not implemented")
+	}
+
+	return objectMetadata, object, err
+}

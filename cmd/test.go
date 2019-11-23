@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/anchorageio/anchorctl/utils/kubernetes"
 	"github.com/spf13/cobra"
@@ -46,6 +47,11 @@ Kinds of tests include:
 			return fmt.Errorf("Could not parse testfile flag", err.Error())
 		}
 
+		threshold, err := cmd.Flags().GetFloat64("threshold")
+		if err != nil {
+			return fmt.Errorf("Could not parse threshold flag", err.Error())
+		}
+
 		switch kind {
 
 		case "kubetest":
@@ -54,9 +60,9 @@ Kinds of tests include:
 				return fmt.Errorf("Could not parse kubeconfig flag", err.Error())
 			}
 
-			err = kubernetes.Assert(cmd, kubeconfig, testfile)
+			err = kubernetes.Assert(cmd, threshold, kubeconfig, testfile)
 			if err != nil {
-				return fmt.Errorf("KubeTest errored out", err.Error())
+				os.Exit(1)
 			}
 
 		}
@@ -77,6 +83,8 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	testCmd.Flags().StringP("file", "f", "", "Input file with the tests.")
-	testCmd.Flags().StringP("kubeconfig", "c", "~/.kube/config", "Path to kubeconfig file")
-	testCmd.Flags().StringP("kind", "k", "~/.kube/config", "Path to kubeconfig file")
+	testCmd.Flags().StringP("kubeconfig", "c", "~/.kube/config", "Path to kubeconfig file.")
+	testCmd.Flags().StringP("kind", "k", "kubetest", "Kind of test, only kubetest is supported at the moment.")
+	testCmd.Flags().Float64P("threshold", "t", 80, "Percentage of tests to pass, else return failure.")
+	testCmd.Flags().IntP("verbose", "v", 3, "Verbosity Level, choose between 1 being Fatal - 7 being .")
 }
