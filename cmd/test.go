@@ -52,7 +52,8 @@ func init() {
 	testCmd.Flags().StringP("kubeconfig", "c", "~/.kube/config", "Path to kubeconfig file.")
 	testCmd.Flags().StringP("kind", "k", "kubetest", "Kind of test, only kubetest is supported at the moment.")
 	testCmd.Flags().Float64P("threshold", "t", 80, "Percentage of tests to pass, else return failure.")
-	testCmd.Flags().IntP("verbose", "v", 3, "Verbosity Level, choose between 1 being Fatal - 7 being .")
+	testCmd.Flags().IntP("verbose", "v", 5, "Verbosity Level, choose between 1 being Fatal - 7 being .")
+	testCmd.Flags().BoolP("incluster", "i", false, "Get kubeconfig from in cluster.")
 }
 
 func testExecute(cmd *cobra.Command, args []string) {
@@ -81,6 +82,11 @@ func testExecute(cmd *cobra.Command, args []string) {
 		logger.WithFields(logrus.Fields{ "flag": "threshold"}).Error("Unable to parse flag. Defaulting to 100.")
 	}
 
+	incluster, err := cmd.Flags().GetBool("incluster")
+	if err != nil {
+		logger.WithFields(logrus.Fields{ "flag": "incluster"}).Error("Unable to parse flag. Defaulting to false.")
+	}
+
 	switch kind {
 
 	case "kubetest":
@@ -90,7 +96,7 @@ func testExecute(cmd *cobra.Command, args []string) {
 		}
 
 		logger.WithFields(logrus.Fields{ "kind": "kubetest"}).Info("Starting kube assert")
-		err = kubernetes.Assert(log, threshold, kubeconfig, testfile)
+		err = kubernetes.Assert(log, threshold, incluster, kubeconfig, testfile)
 		if err != nil {
 			os.Exit(1)
 		}

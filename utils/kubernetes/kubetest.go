@@ -6,8 +6,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Assert(logging *logging.Logger, threshold float64, kubeconfig, testfile string) error {
-	client, err := getKubeClient(false, kubeconfig)
+func Assert(logging *logging.Logger, threshold float64, incluster bool, kubeconfig, testfile string) error {
+	client, err := getKubeClient(incluster, kubeconfig)
 	logger := logging.GetLogger()
 
 	if err != nil {

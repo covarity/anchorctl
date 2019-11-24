@@ -1,0 +1,22 @@
+kind: Pod
+metadata:
+  #  name: nginx-7db9fccd9b-jlpw4
+  namespace: default
+  label:
+    key: run
+    value: nginx
+
+tests:
+  - type: AssertJSONPath
+    jsonPath: ".spec.nodeName"
+    value: "docker-desktop"
+  - type: AssertValidation
+    action: "CREATE"      # Allowed actions: CREATE, UPDATE, DELETE
+    #  filePath: "/Users/cherukat/go/src/github.com/anchorageio/anchorctl/samples/fixtures/loadbalancer.yaml"
+    filePath: "/config/loadbalancer.yaml"
+    expectedError: "Internal error occurred: admission webhook \"webhook.openpolicyagent.org\" denied the request: External Loadbalancers cannot be deployed in this cluster"
+  - type: AssertMutation
+    action: "CREATE"      # Allowed actions: CREATE, UPDATE
+    filePath: "/config/deploy.yaml"
+    jsonPath: ".metadata.labels.function"
+    value: "workload"
