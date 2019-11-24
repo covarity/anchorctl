@@ -19,4 +19,4 @@ tests:
   action: "CREATE"      # Allowed actions: CREATE, UPDATE
   filePath: "./samples/fixtures/deploy.yaml"
   jsonPath: ".metadata.labels.function"
-  value: "wutnow"
+  value: "workload"

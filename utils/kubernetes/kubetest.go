@@ -2,32 +2,36 @@ package kubernetes
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
+	"github.com/anchorageio/anchorctl/utils/logging"
+	log "github.com/sirupsen/logrus"
 )
 
-func Assert(cmd *cobra.Command, threshold float64, kubeconfig, testfile string) error {
+func Assert(logging *logging.Logger, threshold float64, kubeconfig, testfile string) error {
 	client, err := getKubeClient(false, kubeconfig)
+	logger := logging.GetLogger()
 
 	if err != nil {
-		return fmt.Errorf("Could not get client", err.Error())
+		logger.Fatal("Unable to get kubernetes client")
 	}
+
+	fmt.Println(logger.GetLevel())
 
 	kubeTest, err := decodeTestFile(testfile)
 	if err != nil {
-		return fmt.Errorf("Could not decode test file", err.Error())
+		logger.Fatal("Unable to decode test file")
 	}
 
-	object, err := getObject(client, kubeTest)
+	object, objectGetErr := getObject(client, kubeTest)
 	if err != nil {
-		return fmt.Errorf("Failed getting object", err)
+		logger.Error("Unable to decode test file")
 	}
 
 	var passed, failed, invalid int
 	total := len(kubeTest.Tests)
 
-	for _, test := range kubeTest.Tests {
+	for i, test := range kubeTest.Tests {
 
-		if !validateTestField(cmd, test) {
+		if !validateTestField(logging, i, test) {
 			invalid++
 			continue
 		}
@@ -35,46 +39,52 @@ func Assert(cmd *cobra.Command, threshold float64, kubeconfig, testfile string) 
 		switch test["type"]{
 
 		case "AssertJSONPath":
-			if result, err := assertJsonpath(cmd, object, test["jsonPath"], test["value"]); err != nil {
+			if result, err := assertJsonpath(logging, object, test["jsonPath"], test["value"]); err != nil || objectGetErr != nil {
 				invalid++
-				cmd.PrintErrln("AssertJsonPath Failed", err)
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertJSONPath", "jsonPath": test["jsonPath"],}).Error("Invalid test")
 			} else if result == true {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertJSONPath", "jsonPath": test["jsonPath"],}).Info("Passed test")
 				passed++
 			} else {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertJSONPath", "jsonPath": test["jsonPath"],}).Warn("Failed test")
 				failed++
 			}
 
 		case "AssertValidation":
 			if result := assertValidation(client, test["action"], test["filePath"], test["expectedError"]); result == true {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertValidation", "filePath": test["filePath"],}).Info("Passed test")
 				passed++
 			} else {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertValidation", "filePath": test["filePath"],}).Warn("Failed test")
 				failed++
 			}
 
 		case "AssertMutation":
-			if result, err := assertMutation(client, cmd, test["action"], test["filePath"], test["jsonPath"], test["value"]); err != nil {
+			if result, err := assertMutation(client, logging, test["action"], test["filePath"], test["jsonPath"], test["value"]); err != nil {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertMutation", "jsonPath": test["jsonPath"],}).Error("Invalid test")
 				invalid++
-				cmd.PrintErrln("AssertMutation Failed", err)
 			} else if result == true {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertMutation", "jsonPath": test["jsonPath"],}).Info("Passed test")
 				passed++
 			} else {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertMutation", "jsonPath": test["jsonPath"],}).Warn("Failed test")
 				failed++
 			}
 
 		default:
-			cmd.Println(test["type"] + " is not a valid test type")
+			logger.WithFields(log.Fields{ "number": i, "testType": test["type"],}).Error("Invalid test")
 			invalid++
 		}
 	}
 
-	cmd.Printf("Total tests: %d \n", total)
-	cmd.Printf("Passed tests: %d \n", passed)
-	cmd.Printf("Failed tests: %d \n", failed)
-	cmd.Printf("Invalid tests: %d \n", invalid)
+	fmt.Printf("Total tests: %d \n", total)
+	fmt.Printf("Passed tests: %d \n", passed)
+	fmt.Printf("Failed tests: %d \n", failed)
+	fmt.Printf("Invalid tests: %d \n", invalid)
 
 	successRatio := ((float64(passed) / float64(total)) * 100)
 
-	cmd.Printf("successRatio: %.2f \n", successRatio)
+	fmt.Printf("successRatio: %.2f \n", successRatio)
 
 	if successRatio < threshold {
 		return fmt.Errorf("Below threshold: expected: %.2f, actual %.2f", threshold, successRatio)
@@ -83,7 +93,7 @@ func Assert(cmd *cobra.Command, threshold float64, kubeconfig, testfile string) 
 	return nil
 }
 
-func validateTestField(cmd *cobra.Command, test map[string]string) bool {
+func validateTestField(logging *logging.Logger, index int, test map[string]string) bool {
 
 	requiredField := map[string][]string{
 		"AssertJSONPath" : {"jsonPath", "value"},
@@ -93,7 +103,11 @@ func validateTestField(cmd *cobra.Command, test map[string]string) bool {
 
 	for _, i := range requiredField[test["type"]] {
 		if _, ok := test[i]; !ok {
-			cmd.Println(test["type"] + " requires `" + i + "` as a key.")
+			logging.Log.WithFields(log.Fields{
+				"number": index,
+				"testType": test["type"],
+				"requiredField": i,
+			}).Warn("Does not contain required field.")
 			return false
 		}
 	}
