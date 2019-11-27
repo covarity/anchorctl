@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
@@ -14,6 +13,8 @@ import (
 	//"log"
 	"reflect"
 
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//v1 "k8s.io/api/core/v1"
 	//"k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
@@ -21,8 +22,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	//"log"
 	"k8s.io/client-go/kubernetes/scheme"
-	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // getKubeClientSet returns a kubernetes client set which can be used to connect to kubernetes cluster
@@ -96,7 +95,7 @@ func getListOptions(key, value string) *metav1.ListOptions {
 	return &metav1.ListOptions{LabelSelector: key + "=" + value}
 }
 
-func getSlice(cmd *cobra.Command, t interface{}) []interface{} {
+func getSlice(t interface{}) []interface{} {
 	var slicedInterface []interface{}
 
 	switch reflect.TypeOf(t).Kind() {
