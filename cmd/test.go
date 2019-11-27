@@ -52,7 +52,56 @@ func init() {
 	testCmd.Flags().StringP("kubeconfig", "c", "~/.kube/config", "Path to kubeconfig file.")
 	testCmd.Flags().StringP("kind", "k", "kubetest", "Kind of test, only kubetest is supported at the moment.")
 	testCmd.Flags().Float64P("threshold", "t", 80, "Percentage of tests to pass, else return failure.")
-	testCmd.Flags().IntP("verbose", "v", 3, "Verbosity Level, choose between 1 being Fatal - 7 being .")
+	testCmd.Flags().IntP("verbose", "v", 5, "Verbosity Level, choose between 1 being Fatal - 7 being .")
+	testCmd.Flags().BoolP("incluster", "i", false, "Get kubeconfig from in cluster.")
+}
+
+func testExecute(cmd *cobra.Command, args []string) {
+	verbosity, err := cmd.Flags().GetInt("verbose")
+	if err != nil {
+		logrus.WithFields(logrus.Fields{ "flag": "verbose"}).Error("Unable to parse flag. Defaulting to INFO.")
+		verbosity = 5
+	}
+	log := &logging.Logger{}
+	log.SetVerbosity(verbosity)
+	logger := log.GetLogger()
+
+	kind, err := cmd.Flags().GetString("kind")
+	if err != nil {
+		logger.WithFields(logrus.Fields{ "flag": "kind"}).Error("Unable to parse flag. Defaulting to kubetest.")
+		kind = "kubetest"
+	}
+
+	testfile, err := cmd.Flags().GetString("file")
+	if err != nil {
+		logger.WithFields(logrus.Fields{ "flag": "file"}).Fatal("Unable to parse flag.")
+	}
+
+	threshold, err := cmd.Flags().GetFloat64("threshold")
+	if err != nil {
+		logger.WithFields(logrus.Fields{ "flag": "threshold"}).Error("Unable to parse flag. Defaulting to 100.")
+	}
+
+	incluster, err := cmd.Flags().GetBool("incluster")
+	if err != nil {
+		logger.WithFields(logrus.Fields{ "flag": "incluster"}).Error("Unable to parse flag. Defaulting to false.")
+	}
+
+	switch kind {
+
+	case "kubetest":
+		kubeconfig, err := cmd.Flags().GetString("kubeconfig")
+		if err != nil {
+			logger.WithFields(logrus.Fields{ "flag": "kubeconfig"}).Fatal("Unable to parse flag.")
+		}
+
+		logger.WithFields(logrus.Fields{ "kind": "kubetest"}).Info("Starting kube assert")
+		err = kubernetes.Assert(log, threshold, incluster, kubeconfig, testfile)
+		if err != nil {
+			os.Exit(1)
+		}
+
+	}
 }
 
 func testExecute(cmd *cobra.Command, args []string) {
