@@ -103,3 +103,46 @@ func testExecute(cmd *cobra.Command, args []string) {
 
 	}
 }
+
+func testExecute(cmd *cobra.Command, args []string) {
+	verbosity, err := cmd.Flags().GetInt("verbose")
+	if err != nil {
+		logrus.WithFields(logrus.Fields{ "flag": "verbose"}).Error("Unable to parse flag. Defaulting to INFO.")
+		verbosity = 5
+	}
+	log := &logging.Logger{}
+	log.SetVerbosity(verbosity)
+	logger := log.GetLogger()
+
+	kind, err := cmd.Flags().GetString("kind")
+	if err != nil {
+		logger.WithFields(logrus.Fields{ "flag": "kind"}).Error("Unable to parse flag. Defaulting to kubetest.")
+		kind = "kubetest"
+	}
+
+	testfile, err := cmd.Flags().GetString("file")
+	if err != nil {
+		logger.WithFields(logrus.Fields{ "flag": "file"}).Fatal("Unable to parse flag.")
+	}
+
+	threshold, err := cmd.Flags().GetFloat64("threshold")
+	if err != nil {
+		logger.WithFields(logrus.Fields{ "flag": "threshold"}).Error("Unable to parse flag. Defaulting to 100.")
+	}
+
+	switch kind {
+
+	case "kubetest":
+		kubeconfig, err := cmd.Flags().GetString("kubeconfig")
+		if err != nil {
+			logger.WithFields(logrus.Fields{ "flag": "kubeconfig"}).Fatal("Unable to parse flag.")
+		}
+
+		logger.WithFields(logrus.Fields{ "kind": "kubetest"}).Info("Starting kube assert")
+		err = kubernetes.Assert(log, threshold, kubeconfig, testfile)
+		if err != nil {
+			os.Exit(1)
+		}
+
+	}
+}
