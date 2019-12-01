@@ -21,8 +21,18 @@ THE SOFTWARE.
 */
 package main
 
-import "github.com/anchorageio/anchorctl/cmd"
+import (
+	"fmt"
+	"github.com/anchorageio/anchorctl/cmd"
+)
+
+var (
+	Version = "development"
+	Build   = "build"
+)
 
 func main() {
-  cmd.Execute()
+	fmt.Println("Version: " + Version)
+	fmt.Println("Build: " + Build)
+	cmd.Execute()
 }

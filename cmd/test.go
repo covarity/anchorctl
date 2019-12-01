@@ -16,21 +16,20 @@ limitations under the License.
 package cmd
 
 import (
-	"os"
-	"github.com/sirupsen/logrus"
 	"github.com/anchorageio/anchorctl/utils/kubernetes"
 	"github.com/anchorageio/anchorctl/utils/logging"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var description = `
 Test takes in the test steps as config and executes the tests in order.
 
-Example usage: anchorctl test --file test.yaml --kind kubetest 
+Example usage: anchorctl test --file test.yaml --kind kubetest
 
 Kinds of tests include:
 - kubetest: Runs tests against the current context of a kube cluster. Requires --kubeconfig flag to be set.
-    Types of tests include: 
+    Types of tests include:
 	- AssetJSONPath: Given jsonPath and value, assert that the jsonpath of object in cluster matches the value.
 	- AssertValidation: Given action, filepath and expected error, apply the action to the object in file, and assert error is returned
 	- AssertMutation: Given action, filepath, jsonPath and value, assert jsonpath after applying the object in the file.
@@ -40,8 +39,8 @@ Kinds of tests include:
 var testCmd = &cobra.Command{
 	Use:   "test",
 	Short: "Command to run Anchor tests",
-	Long: description,
-	Run: testExecute,
+	Long:  description,
+	Run:   testExecute,
 }
 
 func init() {
@@ -59,47 +58,49 @@ func init() {
 func testExecute(cmd *cobra.Command, args []string) {
 	verbosity, err := cmd.Flags().GetInt("verbose")
 	if err != nil {
-		logrus.WithFields(logrus.Fields{ "flag": "verbose"}).Error("Unable to parse flag. Defaulting to INFO.")
+		logrus.WithFields(logrus.Fields{"flag": "verbose"}).Error("Unable to parse flag. Defaulting to INFO.")
 		verbosity = 5
 	}
 	log := &logging.Logger{}
 	log.SetVerbosity(verbosity)
-	logger := log.GetLogger()
 
 	kind, err := cmd.Flags().GetString("kind")
 	if err != nil {
-		logger.WithFields(logrus.Fields{ "flag": "kind"}).Error("Unable to parse flag. Defaulting to kubetest.")
+		log.Error(err, "Unable to parse flag. Defaulting to Kubetest.")
 		kind = "kubetest"
 	}
 
 	testfile, err := cmd.Flags().GetString("file")
 	if err != nil {
-		logger.WithFields(logrus.Fields{ "flag": "file"}).Fatal("Unable to parse flag.")
+		log.Fatal(err, "Failed to parse testfile.")
 	}
 
 	threshold, err := cmd.Flags().GetFloat64("threshold")
 	if err != nil {
-		logger.WithFields(logrus.Fields{ "flag": "threshold"}).Error("Unable to parse flag. Defaulting to 100.")
+		log.Error(err, "Unable to parse flag. Defaulting to 100.")
+		threshold = 100
 	}
 
 	incluster, err := cmd.Flags().GetBool("incluster")
 	if err != nil {
-		logger.WithFields(logrus.Fields{ "flag": "incluster"}).Error("Unable to parse flag. Defaulting to false.")
+		log.Error(err, "Unable to parse flag. Defaulting to false.")
+		incluster = false
+	}
+
+	kubeconfig, err := cmd.Flags().GetString("kubeconfig")
+	if err != nil && incluster == false {
+		log.Fatal(err, "Failed to parse kubeconfig flag")
 	}
 
 	switch kind {
 
 	case "kubetest":
-		kubeconfig, err := cmd.Flags().GetString("kubeconfig")
+		log.Info("kind", "kubetest", "Starting Tests")
+		kubernetes.Assert(log, threshold, incluster, kubeconfig, testfile)
 		if err != nil {
-			logger.WithFields(logrus.Fields{ "flag": "kubeconfig"}).Fatal("Unable to parse flag.")
+			log.Fatal(err, "Failed Tests")
 		}
-
-		logger.WithFields(logrus.Fields{ "kind": "kubetest"}).Info("Starting kube assert")
-		err = kubernetes.Assert(log, threshold, incluster, kubeconfig, testfile)
-		if err != nil {
-			os.Exit(1)
-		}
-
+		log.Info("kind", "kubetest", "Finished Tests")
 	}
+
 }

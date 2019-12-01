@@ -100,3 +100,4 @@ data:
 kind: ConfigMap
 metadata:
   name: sample-test
+  namespace: applications

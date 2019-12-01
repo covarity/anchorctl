@@ -1,6 +1,4 @@
-SHELL := /bin/bash #--rcfile ~/.bash_profile
-
-.PHONY: a all clean docker help run
+SHELL := /bin/bash
 
 # COLORS
 GREEN  := $(shell tput -Txterm setaf 2)
@@ -9,25 +7,31 @@ WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 TARGET_MAX_CHAR_NUM=20
 
-export CGO_ENABLED=0
-export GOOS=linux
-export GOARCH=amd64
+# These will be provided to the target
+VERSION := 1.0.0
+BUILD := `git rev-parse HEAD`
+TARGET := anchorctl
 
-BINARY=anchorctl
-VERSION=0.1.0
-BUILD=$(shell git rev-parse HEAD)
-LDFLAGS=-ldflags "-X main.Version=$(VERSION) -X main.Build=$(BUILD)"
+# Use linker flags to provide version/build settings to the target
+LDFLAGS=-ldflags "-X=main.Version=$(VERSION) -X=main.Build=$(BUILD)"
 
-a: help
+# go source files, ignore vendor directory
+SRC = $(shell find . -type d -name '*.go' -not -path "./vendor/*")
 
-## Build the File
-all:
-	go build -o $(BINARY) $(LDFLAGS)
+.PHONY: fmt lint build run docker
 
-clean:
-	kubectl delete deploy -n applications nginx-labels
-#	rm $(BINARY)
-#
+fmt:
+	gofmt -s -w .
+
+lint:
+	golint -set_exit_status ./cmd ./utils/logging ./utils/kubernetes
+
+build: fmt
+	go build $(LDFLAGS) -o ./anchorctl -v ./main.go
+
+run: fmt build
+	./anchorctl test -c /Users/cherukat/.kube/config -f ./samples/kube-test.yaml -k kubetest
+
 docker:
 	docker build -t "docker.pkg.github.com/trussio/anchorctl/$(BINARY):$(VERSION)" \
 		--build-arg build=$(BUILD) --build-arg version=$(VERSION) \

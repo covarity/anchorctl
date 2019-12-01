@@ -2,23 +2,19 @@ package kubernetes
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/anchorageio/anchorctl/utils/logging"
-	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/jsonpath"
 )
 
-func assertJsonpath(logging *logging.Logger, object interface{}, path, value string) (bool, error) {
+func assertJsonpath(object interface{}, path, value string) (bool, error) {
 
 	jp := jsonpath.New("assertJsonpath")
 	jp.AllowMissingKeys(true)
 	err := jp.Parse("{" + path + "}")
 	passed := true
-	logger := logging.Log
 
 	if err != nil {
-		logger.WithFields(log.Fields{ "jsonPath": path,}).Error("Cannot parse JSONPath")
+		log.Error(err, "Cannot parse JSONPath")
 		return false, err
 	}
 
@@ -27,15 +23,13 @@ func assertJsonpath(logging *logging.Logger, object interface{}, path, value str
 	objects := getSlice(object)
 
 	for _, i := range objects {
-
 		err = jp.Execute(buf, i)
 		if err != nil || buf.String() != value {
-			logger.WithFields(log.Fields{ "jsonPath": path,}).Error("Cannot execute JSONPath")
+			log.Error(err, "Cannot execute JSONPath")
 			passed = false
 			break
 		}
 		buf.Reset()
-
 	}
 
 	return passed, err
@@ -45,24 +39,27 @@ func assertValidation(client *kubernetes.Clientset, action, filepath, expectedEr
 	_, _, err := applyAction(client, filepath, action)
 
 	if err != nil && err.Error() == expectedError {
+		log.Info("Expected", expectedError, "AssertValidation Passed")
 		return true
 	}
 
+	log.Warn("Got", err.Error(), "AssertValidation Failed")
 	return false
 
 }
 
-func assertMutation(client *kubernetes.Clientset, logging *logging.Logger, action, filepath, jsonpath, value string) (bool, error) {
+func assertMutation(client *kubernetes.Clientset, action, filepath, jsonpath, value string) (bool, error) {
 	_, obj, err := applyAction(client, filepath, action)
 	if err != nil {
-		return false, fmt.Errorf("Errored out: ", err)
+		log.Warn("Error", err.Error(), "AssertMutation Failed")
+		return false, err
 	}
 
-	return assertJsonpath(logging, obj, jsonpath, value)
+	return assertJsonpath(obj, jsonpath, value)
 
 }
 
-func assertNetworkPolicies(sourceNamespace, sourceLabelKey, sourceLabelValue, destNamespace, destNamespaceKey, destValue, port, ipaddress string){
+func assertNetworkPolicies(sourceNamespace, sourceLabelKey, sourceLabelValue, destNamespace, destNamespaceKey, destValue, port, ipaddress string) {
 	// TODO: If ip address is provided, check it returns a 200 with the port
 	// TODO: Else, create pod in sourceNamespace with sourceLabelKey and sourceLabelValue
 	// TODO: Create pod in destNamespace with destLabelKey and destLabelValue
