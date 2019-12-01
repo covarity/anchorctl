@@ -6,22 +6,14 @@ import (
 	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
-	"log"
-
-	//v1 "k8s.io/api/core/v1"
-	//"k8s.io/api/extensions/v1beta1"
-	//"log"
 	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	//v1 "k8s.io/api/core/v1"
-	//"k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	//"log"
-	"k8s.io/client-go/kubernetes/scheme"
 )
 
 // getKubeClientSet returns a kubernetes client set which can be used to connect to kubernetes cluster
@@ -58,7 +50,7 @@ func getObject(client *kubernetes.Clientset, kubetest *kubeTest) (interface{}, e
 		listOptions = getListOptions(kubetest.Metadata.Label.Key, kubetest.Metadata.Label.Value)
 	}
 
-	switch kubetest.Kind {
+	switch kubetest.Metadata.Kind {
 
 	case "Pod":
 		if kubetest.Metadata.Name != "" {
@@ -123,20 +115,26 @@ func applyAction(client *kubernetes.Clientset, pathToFile, action string) (*kube
 	var object interface{}
 
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Error while reading the file. Err was: %s", err))
+		log.Fatal(err, "Error reading the test file.")
 	}
 
 	obj, _, err := decode(bytes, nil, nil)
 
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Error while decoding YAML object. Err was: %s", err))
+		log.Fatal(err, "Error decoding KubeTest object.")
 	}
 
 	err = yaml.Unmarshal(bytes, &objectMetadata)
 
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Error while unmarshalling Object Metadata. Err was: %s", err))
+		log.Fatal(err, "Error while unmarshalling KubeTest Metadata.")
 	}
+
+	log.InfoWithFields(map[string]interface{}{
+		"action":    action,
+		"name":      objectMetadata.Metadata.Name,
+		"namespace": objectMetadata.Metadata.Namespace,
+	}, "Applying action to file")
 
 	switch obj.(type) {
 	case *appsv1.Deployment:

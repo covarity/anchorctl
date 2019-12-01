@@ -1,19 +1,19 @@
 package kubernetes
 
-type kubeTest struct{
-	Kind string
+type kubeTest struct {
 	Metadata metadata
-	Tests []map[string]string
+	Tests    []map[string]string
 }
 
 type metadata struct {
-	Name string
+	Kind      string
+	Name      string
 	Namespace string
-	Label label
+	Label     label
 }
 
 type label struct {
-	Key string
+	Key   string
 	Value string
 }
 

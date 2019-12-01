@@ -1,6 +1,6 @@
-kind: Pod
 metadata:
   #  name: nginx-7db9fccd9b-jlpw4
+  kind: Pod
   namespace: default
   label:
     key: run
