@@ -20,6 +20,8 @@ import (
 	"github.com/anchorageio/anchorctl/utils/logging"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/util/homedir"
+	"path/filepath"
 )
 
 var description = `
@@ -45,10 +47,10 @@ var testCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(testCmd)
-
+	var defaultKubeConfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
 	// Local Flags
 	testCmd.Flags().StringP("file", "f", "", "Input file with the tests.")
-	testCmd.Flags().StringP("kubeconfig", "c", "~/.kube/config", "Path to kubeconfig file.")
+	testCmd.Flags().StringP("kubeconfig", "c", defaultKubeConfig, "Path to kubeconfig file.")
 	testCmd.Flags().StringP("kind", "k", "kubetest", "Kind of test, only kubetest is supported at the moment.")
 	testCmd.Flags().Float64P("threshold", "t", 80, "Percentage of tests to pass, else return failure.")
 	testCmd.Flags().IntP("verbose", "v", 5, "Verbosity Level, choose between 1 being Fatal - 7 being .")

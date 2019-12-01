@@ -30,7 +30,7 @@ build: fmt
 	go build $(LDFLAGS) -o ./anchorctl -v ./main.go
 
 run: fmt build
-	./anchorctl test -c /Users/cherukat/.kube/config -f ./samples/kube-test.yaml -k kubetest
+	./anchorctl test -f ./samples/kube-test.yaml -k kubetest
 
 docker:
 	docker build -t "docker.pkg.github.com/trussio/anchorctl/$(BINARY):$(VERSION)" \
