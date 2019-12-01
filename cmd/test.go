@@ -82,7 +82,7 @@ func testExecute(cmd *cobra.Command, args []string) {
 	}
 
 	incluster, err := cmd.Flags().GetBool("incluster")
-	if err != nil 
+	if err != nil {
 		log.Error(err, "Unable to parse flag. Defaulting to false.")
 		incluster = false
 	}

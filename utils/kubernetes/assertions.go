@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"bytes"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/jsonpath"
 )
@@ -12,7 +13,6 @@ func assertJsonpath(object interface{}, path, value string) (bool, error) {
 	jp.AllowMissingKeys(true)
 	err := jp.Parse("{" + path + "}")
 	passed := true
-	logger := logging.Log
 
 	if err != nil {
 		log.Error(err, "Cannot parse JSONPath")
@@ -48,7 +48,6 @@ func assertValidation(client *kubernetes.Clientset, action, filepath, expectedEr
 	return false
 
 }
-
 
 func assertMutation(client *kubernetes.Clientset, action, filepath, jsonpath, value string) (bool, error) {
 	_, obj, err := applyAction(client, filepath, action)
