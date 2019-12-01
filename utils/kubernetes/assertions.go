@@ -12,6 +12,7 @@ func assertJsonpath(object interface{}, path, value string) (bool, error) {
 	jp.AllowMissingKeys(true)
 	err := jp.Parse("{" + path + "}")
 	passed := true
+	logger := logging.Log
 
 	if err != nil {
 		log.Error(err, "Cannot parse JSONPath")
@@ -48,15 +49,14 @@ func assertValidation(client *kubernetes.Clientset, action, filepath, expectedEr
 
 }
 
+
 func assertMutation(client *kubernetes.Clientset, action, filepath, jsonpath, value string) (bool, error) {
 	_, obj, err := applyAction(client, filepath, action)
 	if err != nil {
 		log.Warn("Error", err.Error(), "AssertMutation Failed")
 		return false, err
 	}
-
 	return assertJsonpath(obj, jsonpath, value)
-
 }
 
 func assertNetworkPolicies(sourceNamespace, sourceLabelKey, sourceLabelValue, destNamespace, destNamespaceKey, destValue, port, ipaddress string) {

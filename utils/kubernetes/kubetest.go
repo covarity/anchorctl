@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"fmt"
 	"github.com/anchorageio/anchorctl/utils/logging"
+
 	"github.com/olekukonko/tablewriter"
 	"os"
 )
@@ -16,13 +17,14 @@ var requiredField = map[string][]string{
 var log *logging.Logger
 
 func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfig, testfile string) {
-
 	log = logger
 
 	client, err := getKubeClient(incluster, kubeconfig)
 	if err != nil {
 		log.Fatal(err, "Unable to get kubernetes client")
 	}
+
+	fmt.Println(logger.GetLevel())
 
 	kubeTest, err := decodeTestFile(testfile)
 	if err != nil {
@@ -50,15 +52,19 @@ func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfi
 			if result, err := assertJsonpath(object, test["jsonPath"], test["value"]); err != nil || objectGetErr != nil {
 				invalid++
 			} else if result == true {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertJSONPath", "jsonPath": test["jsonPath"],}).Info("Passed test")
 				passed++
 			} else {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertJSONPath", "jsonPath": test["jsonPath"],}).Warn("Failed test")
 				failed++
 			}
 
 		case "AssertValidation":
 			if result := assertValidation(client, test["action"], test["filePath"], test["expectedError"]); result == true {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertValidation", "filePath": test["filePath"],}).Info("Passed test")
 				passed++
 			} else {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertValidation", "filePath": test["filePath"],}).Warn("Failed test")
 				failed++
 			}
 
@@ -66,8 +72,10 @@ func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfi
 			if result, err := assertMutation(client, test["action"], test["filePath"], test["jsonPath"], test["value"]); err != nil {
 				invalid++
 			} else if result == true {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertMutation", "jsonPath": test["jsonPath"],}).Info("Passed test")
 				passed++
 			} else {
+				logger.WithFields(log.Fields{ "number": i, "testType": "AssertMutation", "jsonPath": test["jsonPath"],}).Warn("Failed test")
 				failed++
 			}
 
