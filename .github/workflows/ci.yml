@@ -10,5 +10,5 @@ jobs:
     - name: Push
       run: |
         docker build . -t docker.pkg.github.com/trussio/anchorctl/anchorctl:latest
-        docker login docker.pkg.github.com --username RepoOwner --password "${GITHUB_TOKEN}"
+        docker login docker.pkg.github.com -u RepoOwner -p "${GITHUB_TOKEN}"
         docker push docker.pkg.github.com/trussio/anchorctl/anchorctl:latest
