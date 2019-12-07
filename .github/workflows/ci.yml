@@ -1,0 +1,14 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Push
+      run: |
+        docker build . -t docker.pkg.github.com/trussio/anchorctl/anchorctl:latest
+        docker login docker.pkg.github.com --username RepoOwner --password "${GITHUB_TOKEN}"
+        docker push docker.pkg.github.com/trussio/anchorctl/anchorctl:latest
