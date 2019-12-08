@@ -13,7 +13,6 @@ RUN go mod download
 ARG build
 ARG version
 RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=${version} -X main.Build=${build}" -o anchorctl
-RUN cp anchorctl /
 
 # Final Step
 FROM alpine
