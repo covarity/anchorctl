@@ -2,8 +2,9 @@ package kubetest
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+
+	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
@@ -31,7 +32,7 @@ func executeLifecycle(manifests []manifest, client *kubernetes.Clientset) {
 	for _, i := range manifests {
 		_, _, err := i.apply(client)
 		if err != nil {
-			log.Fatal(err, "Failed Post Start steps")
+			log.Fatal(err, "Failed Lifecycle steps")
 		}
 	}
 }
