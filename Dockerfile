@@ -4,9 +4,8 @@ FROM golang:1.13 AS build
 ENV GO111MODULE=on
 
 # Prerequisites and vendoring
-RUN mkdir -p $GOPATH/src/github.com/anchorageio/anchorctl
-ADD . $GOPATH/src/github.com/anchorageio/anchorctl
-WORKDIR $GOPATH/src/github.com/anchorageio/anchorctl
+ADD . /
+WORKDIR /
 
 RUN go mod download
 
@@ -14,7 +13,6 @@ RUN go mod download
 ARG build
 ARG version
 RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=${version} -X main.Build=${build}" -o anchorctl
-RUN cp anchorctl /
 
 # Final Step
 FROM alpine
