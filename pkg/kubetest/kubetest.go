@@ -28,11 +28,14 @@ func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfi
 		log.Fatal(err, "Unable to decode test file")
 	}
 
+	executeLifecycle(kubeTest.Spec.Lifecycle.PostStart, client)
+
 	results := runTests(client, kubeTest)
 	results.threshold = threshold
 	results.total = len(kubeTest.Spec.Tests)
 	results.print()
 
+	executeLifecycle(kubeTest.Spec.Lifecycle.PreStop, client)
 
 	log.Info("Passed", "true", "Passed Test")
 }
@@ -84,7 +87,7 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 }
 
 func runKubeTester(kubetester kubeTester, i test, res *testResult) {
-	if result, err := kubetester.test(i.ObjectRef); err != nil {
+	if result, err := kubetester.test(i.Resource); err != nil {
 		res.invalid++
 	} else if result == false {
 		res.failed++

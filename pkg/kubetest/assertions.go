@@ -2,12 +2,14 @@ package kubetest
 
 import (
 	"bytes"
+	"fmt"
+
 	"k8s.io/client-go/util/jsonpath"
 )
 
-func (aj *jsonTest) test(ref objectRef) (bool, error) {
+func (aj *jsonTest) test(res resource) (bool, error) {
 
-	obj, err := getObject(aj.client, &ref)
+	obj, err := res.ObjectRef.getObject(aj.client)
 	if err != nil {
 		return false, err
 	}
@@ -41,37 +43,54 @@ func assertJSONPath(obj interface{}, path, value string) (bool, error) {
 				"jsonpath": path,
 				"expected": value,
 				"got":      buf.String(),
+				"status":   "FAILED",
 			}, "Failed asserting jsonpath on obj")
 			passed = false
 			break
 		}
 		buf.Reset()
 	}
+	log.InfoWithFields(map[string]interface{}{
+		"test":   "AssertJSONPath",
+		"path":   path,
+		"status": "PASSED",
+	}, "JSON Path matches expected value.")
 
 	return passed, err
 
 }
 
-func (av *validationTest) test(ref objectRef) (bool, error) {
-	_, _, err := applyAction(av.client, ref.Spec.Path, ref.Spec.Action)
+func (av *validationTest) test(res resource) (bool, error) {
 
+	_, _, err := res.Manifest.apply(av.client)
 	if err != nil && err.Error() == av.ExpectedError {
-		log.Info("Expected", av.ExpectedError, "AssertValidation Passed")
+		log.InfoWithFields(map[string]interface{}{
+			"test":          "AssertValidation",
+			"expectedError": av.ExpectedError,
+			"status":        "PASSED",
+		}, "AssertValidation throws the expected error.")
 		return true, nil
 	}
 
 	log.WarnWithFields(map[string]interface{}{
+		"test":     "AssertValidation",
 		"expected": av.ExpectedError,
-		"got":      err.Error(),
+		"got":      "Error: " + err.Error(),
+		"status":   "FAILED",
 	}, "AssertValidation Failed")
+
 	return false, nil
 
 }
 
-func (am *mutationTest) test(ref objectRef) (bool, error) {
-	_, obj, err := applyAction(am.client, ref.Spec.Path, ref.Spec.Action)
+func (am *mutationTest) test(res resource) (bool, error) {
+
+	if valid := res.Manifest.valid(); valid != true {
+		return false, fmt.Errorf("Invalid Manifest to apply")
+	}
+
+	_, obj, err := res.Manifest.apply(am.client)
 	if err != nil {
-		log.Warn("Error", err.Error(), "AssertMutation Failed")
 		return false, err
 	}
 
