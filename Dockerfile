@@ -4,9 +4,8 @@ FROM golang:1.13 AS build
 ENV GO111MODULE=on
 
 # Prerequisites and vendoring
-RUN mkdir -p /anchorctl
-ADD . /anchorctl
-WORKDIR /anchorctl
+ADD . /
+WORKDIR /
 
 RUN go mod download
 
