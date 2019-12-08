@@ -16,12 +16,13 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/anchorageio/anchorctl/utils/kubernetes"
-	"github.com/anchorageio/anchorctl/utils/logging"
+	"path/filepath"
+
+	"github.com/covarity/anchorctl/pkg/kubetest"
+	"github.com/covarity/anchorctl/pkg/logging"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
-	"path/filepath"
 )
 
 var description = `
@@ -98,7 +99,7 @@ func testExecute(cmd *cobra.Command, args []string) {
 
 	case "kubetest":
 		log.Info("kind", "kubetest", "Starting Tests")
-		kubernetes.Assert(log, threshold, incluster, kubeconfig, testfile)
+		kubetest.Assert(log, threshold, incluster, kubeconfig, testfile)
 		if err != nil {
 			log.Fatal(err, "Failed Tests")
 		}

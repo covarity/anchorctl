@@ -23,7 +23,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/anchorageio/anchorctl/cmd"
+
+	"github.com/covarity/anchorctl/cmd"
 )
 
 var (

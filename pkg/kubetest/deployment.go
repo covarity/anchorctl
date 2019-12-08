@@ -1,4 +1,4 @@
-package kubernetes
+package kubetest
 
 import (
 	app "k8s.io/api/apps/v1"

@@ -1,12 +1,13 @@
-package kubernetes
+package kubetest
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+	"reflect"
+
+	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
-	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,24 +43,25 @@ func getKubeClient(incluster bool, filepath string) (*kubernetes.Clientset, erro
 	return clientset, nil
 }
 
-func getObject(client *kubernetes.Clientset, kubetest *kubeTest) (interface{}, error) {
+func getObject(client *kubernetes.Clientset, ref *objectRef) (interface{}, error) {
+
+	if ref.Type == "File" {
+		return nil, nil
+	}
 
 	var listOptions *metav1.ListOptions
 
-	if kubetest.Metadata.Label.Key != "" {
-		listOptions = getListOptions(kubetest.Metadata.Label.Key, kubetest.Metadata.Label.Value)
+	if ref.Spec.LabelKey != "" {
+		listOptions = getListOptions(ref.Spec.LabelKey, ref.Spec.LabelValue)
 	}
 
-	switch kubetest.Metadata.Kind {
+	switch ref.Type {
 
 	case "Pod":
-		if kubetest.Metadata.Name != "" {
-			return getPod(client, kubetest.Metadata.Name, kubetest.Metadata.Namespace)
-		}
-		return listPods(client, kubetest.Metadata.Namespace, listOptions)
+		return listPods(client, ref.Spec.Namespace, listOptions)
 
-	case "Deployment":
-		return getDeployment(client, kubetest.Metadata.Name, kubetest.Metadata.Namespace)
+	case "ConfigMap":
+		return listConfigMaps(client, ref.Spec.Namespace, listOptions)
 
 	default:
 		return nil, fmt.Errorf("Cannot detect object type")
@@ -67,7 +69,7 @@ func getObject(client *kubernetes.Clientset, kubetest *kubeTest) (interface{}, e
 	}
 }
 
-func decodeTestFile(filePath string) (*kubeTest, error) {
+func decodeTestFile(client *kubernetes.Clientset, filePath string) (*kubeTest, error) {
 	kubeTest := &kubeTest{}
 
 	data, err := ioutil.ReadFile(filePath)

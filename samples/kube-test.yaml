@@ -1,21 +1,33 @@
+apiVersion: anchor.covarity.dev/alpha1v1
+kind: KubeTest
 metadata:
-#  name: nginx-7db9fccd9b-jlpw4
-  kind: Pod
-  namespace: default
-  label:
-    key: run
-    value: nginx
-
-tests:
-- type: AssertJSONPath
-  jsonPath: ".spec.nodeName"
-  value: "docker-desktop"
-- type: AssertValidation
-  action: "CREATE"      # Allowed actions: CREATE, UPDATE, DELETE
-  filePath: "./samples/fixtures/loadbalancer.yaml"
-  expectedError: "Internal error occurred: admission webhook \"webhook.openpolicyagent.org\" denied the request: External Loadbalancers cannot be deployed in this cluster"
-- type: AssertMutation
-  action: "CREATE"      # Allowed actions: CREATE, UPDATE
-  filePath: "./samples/fixtures/deploy.yaml"
-  jsonPath: ".metadata.labels.function"
-  value: "workload"
+  name: opa-validation
+spec:
+  tests:
+  - type: AssertJSONPath
+    spec:
+      jsonPath: ".spec.nodeName"
+      value: "docker-desktop"
+    objectRef:
+      type: Pod
+      spec:
+        namespace: default
+        labelKey: run
+        labelValue: nginx
+  - type: AssertValidation
+    spec:
+      expectedError: "Internal error occurred: admission webhook \"webhook.openpolicyagent.org\" denied the request: External Loadbalancers cannot be deployed in this cluster"
+    objectRef:
+      type: File
+      spec:
+        path: "./samples/fixtures/loadbalancer.yaml"
+        action: CREATE
+  - type: AssertMutation
+    spec:
+      jsonPath: ".metadata.labels.function"
+      value: "workload"
+    objectRef:
+      type: File
+      spec:
+        path: "./samples/fixtures/deploy.yaml"
+        action: CREATE

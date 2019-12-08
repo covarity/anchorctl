@@ -1,9 +1,9 @@
-module github.com/anchorageio/anchorctl
+module github.com/covarity/anchorctl
 
 go 1.13
 
 require (
-	github.com/imdario/mergo v0.3.8 // indirect
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/olekukonko/tablewriter v0.0.3
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v0.0.5
