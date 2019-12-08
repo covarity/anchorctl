@@ -3,31 +3,42 @@ kind: KubeTest
 metadata:
   name: opa-validation
 spec:
+  lifecycle:
+    postStart:
+    - path: "./samples/fixtures/applications-ns.yaml"
+      action: "CREATE"
+    - path: "./samples/fixtures/hello-world-nginx.yaml"
+      action: "CREATE"
+    preStop:
+      - path: "./samples/fixtures/hello-world-nginx.yaml"
+        action: "DELETE"
+      - path: "./samples/fixtures/applications-ns.yaml"
+        action: "DELETE"
   tests:
   - type: AssertJSONPath
     spec:
-      jsonPath: ".spec.nodeName"
-      value: "docker-desktop"
-    objectRef:
-      type: Pod
-      spec:
-        namespace: default
-        labelKey: run
-        labelValue: nginx
+      jsonPath: ".spec.containers[0].image"
+      value: "nginx"
+    resource:
+      objectRef:
+        type: Resource
+        spec:
+          kind: Pod
+          namespace: applications
+          labelKey: hello
+          labelValue: world
   - type: AssertValidation
     spec:
       expectedError: "Internal error occurred: admission webhook \"webhook.openpolicyagent.org\" denied the request: External Loadbalancers cannot be deployed in this cluster"
-    objectRef:
-      type: File
-      spec:
+    resource:
+      manifest:
         path: "./samples/fixtures/loadbalancer.yaml"
         action: CREATE
   - type: AssertMutation
     spec:
       jsonPath: ".metadata.labels.function"
       value: "workload"
-    objectRef:
-      type: File
-      spec:
+    resource:
+      manifest:
         path: "./samples/fixtures/deploy.yaml"
         action: CREATE

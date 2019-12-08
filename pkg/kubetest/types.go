@@ -12,14 +12,14 @@ type kubeTest struct {
 }
 
 type kubeTestSpec struct {
-	Tests []test
+	Lifecycle lifecycle `yaml:"lifecycle"`
+	Tests     []test
 }
 
 type test struct {
-	ObjectRef objectRef `yaml:"objectRef"`
-	Type      string
-	Spec      map[string]interface{}
-	Assertion kubeTester
+	Resource resource `yaml:"resource"`
+	Type     string
+	Spec     map[string]interface{}
 }
 
 type metadata struct {
@@ -32,22 +32,8 @@ type kubeMetadata struct {
 	Metadata metadata
 }
 
-type objectRef struct {
-	Type string        `yaml:"type"`
-	Spec objectRefSpec `yaml:"spec"`
-}
-
-type objectRefSpec struct {
-	Path       string `yaml:"path"`
-	Action     string `yaml:"action"`
-	Kind       string `yaml:"kind"`
-	Namespace  string `yaml:"namespace"`
-	LabelKey   string `yaml:"labelKey"`
-	LabelValue string `yaml:"labelValue"`
-}
-
 type kubeTester interface {
-	test(objectRef objectRef) (bool, error)
+	test(res resource) (bool, error)
 }
 
 type jsonTest struct {

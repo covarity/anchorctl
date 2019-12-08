@@ -2,8 +2,9 @@ package kubetest
 
 import (
 	"fmt"
-	"github.com/olekukonko/tablewriter"
 	"os"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 type testResult struct {
@@ -12,6 +13,8 @@ type testResult struct {
 }
 
 func (res *testResult) print() {
+	res.successRatio = res.calculateSuccessRatio()
+
 	data := [][]string{
 		{"Total", fmt.Sprintf("%d", res.total)},
 		{"Passed", fmt.Sprintf("%d", res.passed)},
@@ -30,13 +33,14 @@ func (res *testResult) print() {
 }
 
 func (res *testResult) validate() {
-	if res.total < 1{
-		log.Fatal(fmt.Errorf("Total number of tests is less than 0"), "Exiting")
-	}
-
-	res.successRatio = (float64(res.passed) / float64(res.total)) * 100
-
 	if res.successRatio < res.threshold {
 		log.Fatal(fmt.Errorf("Expected %.2f, Got %.2f", res.threshold, res.successRatio), "Failed Test Threshold")
 	}
+}
+
+func (res *testResult) calculateSuccessRatio() float64 {
+	if res.total < 1 {
+		log.Fatal(fmt.Errorf("Total number of tests is less than 0"), "Exiting")
+	}
+	return (float64(res.passed) / float64(res.total)) * 100
 }

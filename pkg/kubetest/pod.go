@@ -14,6 +14,17 @@ func getPod(client *kubernetes.Clientset, name, namespace string) ([]v1.Pod, err
 }
 
 func listPods(client *kubernetes.Clientset, namespace string, listOptions *metav1.ListOptions) ([]v1.Pod, error) {
+	log.InfoWithFields(map[string]interface{}{
+		"kind":      "Pod",
+		"Namespace": namespace,
+		"labelkey":  listOptions.LabelSelector,
+	}, "Retriving object")
+
 	pods, err := client.CoreV1().Pods(namespace).List(*listOptions)
-	return pods.Items, err
+	if err != nil {
+		log.Error(err, "Unable to retrieve object")
+		return nil, err
+	}
+
+	return pods.Items, nil
 }

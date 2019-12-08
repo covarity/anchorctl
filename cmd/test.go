@@ -105,4 +105,5 @@ func testExecute(cmd *cobra.Command, args []string) {
 		}
 		log.Info("kind", "kubetest", "Finished Tests")
 	}
+
 }
