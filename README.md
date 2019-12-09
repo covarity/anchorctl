@@ -113,7 +113,7 @@ an action, applies the action to the file and assert that the error equals the e
 # Assert that when attempting to create the resources in .resource.manifest.path, the error is returned by the API Server.
 - type: AssertValidation
   spec:
-    expectedError: "Internal error occurred: admission webhook \"webhook.openpolicyagent.org\" denied the request: External Loadbalancers cannot be deployed in this cluster"
+    containsResponse: "External Loadbalancers cannot be deployed in this cluster"
   resource:
     manifest:
       path: "./samples/fixtures/loadbalancer.yaml"

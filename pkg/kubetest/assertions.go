@@ -3,6 +3,7 @@ package kubetest
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"k8s.io/client-go/util/jsonpath"
 )
@@ -63,18 +64,18 @@ func assertJSONPath(obj interface{}, path, value string) (bool, error) {
 func (av *validationTest) test(res resource) (bool, error) {
 
 	_, _, err := res.Manifest.apply(av.client, true)
-	if err != nil && err.Error() == av.ExpectedError {
+	if err != nil && strings.Contains(err.Error(), av.ContainsResponse) {
 		log.InfoWithFields(map[string]interface{}{
-			"test":          "AssertValidation",
-			"expectedError": av.ExpectedError,
-			"status":        "PASSED",
+			"test":             "AssertValidation",
+			"containsResponse": av.ContainsResponse,
+			"status":           "PASSED",
 		}, "AssertValidation throws the expected error.")
 		return true, nil
 	}
 
 	log.WarnWithFields(map[string]interface{}{
 		"test":     "AssertValidation",
-		"expected": av.ExpectedError,
+		"expected": av.ContainsResponse,
 		"got":      "Error: " + err.Error(),
 		"status":   "FAILED",
 	}, "AssertValidation Failed")

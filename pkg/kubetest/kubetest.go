@@ -65,7 +65,7 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 			var validationTest *validationTest
 			res.addResultToRow(i, "AssertValidation")
 			err := mapstructure.Decode(test.Spec, &validationTest)
-			res.addResultToRow(i, "ExpectedError: "+validationTest.ExpectedError[:25]+"...")
+			res.addResultToRow(i, "Expected Response: "+validationTest.ContainsResponse[:25]+"...")
 			if err != nil {
 				res.invalid++
 				res.addResultToRow(i, "❌")
