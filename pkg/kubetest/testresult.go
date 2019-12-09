@@ -40,6 +40,8 @@ func (res *testResult) print() {
 	fmt.Println()
 	testSumamry.Render()
 	fmt.Println()
+
+	res.validate()
 }
 
 func (res *testResult) addResultToRow(row int, add string) {

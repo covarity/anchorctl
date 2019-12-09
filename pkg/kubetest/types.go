@@ -44,8 +44,8 @@ type jsonTest struct {
 }
 
 type validationTest struct {
-	ExpectedError string
-	client        *kubernetes.Clientset
+	ContainsResponse string `yaml:"containsResponse"`
+	client           *kubernetes.Clientset
 }
 
 type mutationTest struct {

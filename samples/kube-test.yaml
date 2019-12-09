@@ -29,15 +29,15 @@ spec:
           labelValue: world
   - type: AssertValidation
     spec:
-      expectedError: "Internal error occurred: admission webhook \"webhook.openpolicyagent.org\" denied the request: External Loadbalancers cannot be deployed in this cluster"
+      containsResponse: "External Loadbalancers cannot be deployed in this cluster"
     resource:
       manifest:
         path: "./fixtures/loadbalancer.yaml"
         action: CREATE
   - type: AssertMutation
     spec:
-      jsonPath: ".metadata.labels.function"
-      value: "workload"
+      jsonPath: ".metadata.labels.billing-information"
+      value: "ACC108964123"
     resource:
       manifest:
         path: "./fixtures/deploy.yaml"
