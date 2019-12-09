@@ -10,9 +10,19 @@ import (
 type testResult struct {
 	invalid, passed, failed, total int
 	successRatio, threshold        float64
+	testRuns                       [][]string
 }
 
 func (res *testResult) print() {
+
+	testList := tablewriter.NewWriter(os.Stdout)
+	testList.SetHeader([]string{"Test Type", "Spec", "Passed"})
+	testList.SetBorder(false)
+	testList.AppendBulk(res.testRuns)
+	fmt.Println()
+	testList.Render()
+	fmt.Println()
+
 	res.successRatio = res.calculateSuccessRatio()
 
 	data := [][]string{
@@ -23,13 +33,20 @@ func (res *testResult) print() {
 		{"Expected Coverage", fmt.Sprintf("%.2f", res.threshold)},
 		{"Actual Coverage", fmt.Sprintf("%.2f", res.successRatio)},
 	}
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Tests", "Number"})
-	table.SetBorder(false)
-	table.AppendBulk(data)
+	testSumamry := tablewriter.NewWriter(os.Stdout)
+	testSumamry.SetHeader([]string{"Tests", "Number"})
+	testSumamry.SetBorder(false)
+	testSumamry.AppendBulk(data)
 	fmt.Println()
-	table.Render()
+	testSumamry.Render()
 	fmt.Println()
+}
+
+func (res *testResult) addResultToRow(row int, add string) {
+	if res.testRuns == nil {
+		res.testRuns = make([][]string, 10)
+	}
+	res.testRuns[row] = append(res.testRuns[row], add)
 }
 
 func (res *testResult) validate() {

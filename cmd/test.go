@@ -54,7 +54,7 @@ func init() {
 	testCmd.Flags().StringP("kubeconfig", "c", defaultKubeConfig, "Path to kubeconfig file.")
 	testCmd.Flags().StringP("kind", "k", "kubetest", "Kind of test, only kubetest is supported at the moment.")
 	testCmd.Flags().Float64P("threshold", "t", 80, "Percentage of tests to pass, else return failure.")
-	testCmd.Flags().IntP("verbose", "v", 5, "Verbosity Level, choose between 1 being Fatal - 7 being .")
+	testCmd.Flags().IntP("verbose", "v", 4, "Verbosity Level, choose between 1 being Fatal - 7 being .")
 	testCmd.Flags().BoolP("incluster", "i", false, "Get kubeconfig from in cluster.")
 }
 
@@ -62,7 +62,7 @@ func testExecute(cmd *cobra.Command, args []string) {
 	verbosity, err := cmd.Flags().GetInt("verbose")
 	if err != nil {
 		logrus.WithFields(logrus.Fields{"flag": "verbose"}).Error("Unable to parse flag. Defaulting to INFO.")
-		verbosity = 5
+		verbosity = 4
 	}
 	log := &logging.Logger{}
 	log.SetVerbosity(verbosity)
@@ -105,5 +105,4 @@ func testExecute(cmd *cobra.Command, args []string) {
 		}
 		log.Info("kind", "kubetest", "Finished Tests")
 	}
-
 }
