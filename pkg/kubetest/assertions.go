@@ -62,7 +62,7 @@ func assertJSONPath(obj interface{}, path, value string) (bool, error) {
 
 func (av *validationTest) test(res resource) (bool, error) {
 
-	_, _, err := res.Manifest.apply(av.client)
+	_, _, err := res.Manifest.apply(av.client, true)
 	if err != nil && err.Error() == av.ExpectedError {
 		log.InfoWithFields(map[string]interface{}{
 			"test":          "AssertValidation",
@@ -89,7 +89,7 @@ func (am *mutationTest) test(res resource) (bool, error) {
 		return false, fmt.Errorf("Invalid Manifest to apply")
 	}
 
-	_, obj, err := res.Manifest.apply(am.client)
+	_, obj, err := res.Manifest.apply(am.client, false)
 	if err != nil {
 		return false, err
 	}

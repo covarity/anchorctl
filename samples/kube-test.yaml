@@ -5,14 +5,14 @@ metadata:
 spec:
   lifecycle:
     postStart:
-    - path: "./samples/fixtures/applications-ns.yaml"
+    - path: "./fixtures/applications-ns.yaml"
       action: "CREATE"
-    - path: "./samples/fixtures/hello-world-nginx.yaml"
+    - path: "./fixtures/hello-world-nginx.yaml"
       action: "CREATE"
     preStop:
-      - path: "./samples/fixtures/hello-world-nginx.yaml"
+      - path: "./fixtures/hello-world-nginx.yaml"
         action: "DELETE"
-      - path: "./samples/fixtures/applications-ns.yaml"
+      - path: "./fixtures/applications-ns.yaml"
         action: "DELETE"
   tests:
   - type: AssertJSONPath
@@ -32,7 +32,7 @@ spec:
       expectedError: "Internal error occurred: admission webhook \"webhook.openpolicyagent.org\" denied the request: External Loadbalancers cannot be deployed in this cluster"
     resource:
       manifest:
-        path: "./samples/fixtures/loadbalancer.yaml"
+        path: "./fixtures/loadbalancer.yaml"
         action: CREATE
   - type: AssertMutation
     spec:
@@ -40,5 +40,5 @@ spec:
       value: "workload"
     resource:
       manifest:
-        path: "./samples/fixtures/deploy.yaml"
+        path: "./fixtures/deploy.yaml"
         action: CREATE

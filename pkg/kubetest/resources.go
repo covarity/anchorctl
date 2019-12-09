@@ -2,15 +2,15 @@ package kubetest
 
 import (
 	"fmt"
-	"io/ioutil"
-
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"path/filepath"
 )
 
 type resource struct {
@@ -30,7 +30,7 @@ type lifecycle struct {
 
 func executeLifecycle(manifests []manifest, client *kubernetes.Clientset) {
 	for _, i := range manifests {
-		_, _, err := i.apply(client)
+		_, _, err := i.apply(client, false)
 		if err != nil {
 			log.Fatal(err, "Failed Lifecycle steps")
 		}
@@ -102,7 +102,7 @@ func (mf manifest) valid() bool {
 }
 
 // ApplyFile mimics kubectl apply -f. Takes in a path to a file and applies that object to the cluster and returns the applied object.
-func (mf manifest) apply(client *kubernetes.Clientset) (*kubeMetadata, interface{}, error) {
+func (mf manifest) apply(client *kubernetes.Clientset, expectError bool) (*kubeMetadata, interface{}, error) {
 
 	if valid := mf.valid(); valid != true {
 		return nil, nil, fmt.Errorf("Invalid Manifest to apply")
@@ -111,8 +111,14 @@ func (mf manifest) apply(client *kubernetes.Clientset) (*kubeMetadata, interface
 	decode := scheme.Codecs.UniversalDeserializer().Decode
 	objectMetadata := &kubeMetadata{}
 	var object interface{}
+	var filePath string
+	if testFilePath != "" {
+		filePath = filepath.Dir(testFilePath) + "/" + mf.Path
+	} else {
+		filePath = mf.Path
+	}
 
-	bytes, err := ioutil.ReadFile(mf.Path)
+	bytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		log.Error(err, "Error reading the "+mf.Path+" file.")
 		return nil, nil, err
@@ -194,7 +200,7 @@ func (mf manifest) apply(client *kubernetes.Clientset) (*kubeMetadata, interface
 		object, err = nil, fmt.Errorf("ApplyAction for kind is not implemented")
 	}
 
-	if err != nil {
+	if err != nil && expectError != true {
 		log.WarnWithFields(map[string]interface{}{
 			"Stage":  "PostStart",
 			"Path":   mf.Path,
