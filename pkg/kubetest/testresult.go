@@ -51,13 +51,6 @@ func (res *testResult) addResultToRow(row int, add string) {
 	res.testRuns[row] = append(res.testRuns[row], add)
 }
 
-func (res *testResult) addResultToRow(row int, add string) {
-	if res.testRuns == nil {
-		res.testRuns = make([][]string, 10)
-	}
-	res.testRuns[row] = append(res.testRuns[row], add)
-}
-
 func (res *testResult) validate() {
 	if res.successRatio < res.threshold {
 		log.Fatal(fmt.Errorf("Expected %.2f, Got %.2f", res.threshold, res.successRatio), "Failed Test Threshold")

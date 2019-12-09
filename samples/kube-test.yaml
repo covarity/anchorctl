@@ -37,7 +37,7 @@ spec:
   - type: AssertMutation
     spec:
       jsonPath: ".metadata.labels.billing-information"
-      value: "ACC108964123"
+      value: "ACC108964"
     resource:
       manifest:
         path: "./fixtures/deploy.yaml"
