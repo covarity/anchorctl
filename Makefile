@@ -10,7 +10,7 @@ TARGET_MAX_CHAR_NUM=20
 # These will be provided to the target
 VERSION := 1.0.0
 BUILD := `git rev-parse HEAD`
-TARGET := anchorctl
+BINARY := anchorctl
 
 # Use linker flags to provide version/build settings to the target
 LDFLAGS=-ldflags "-X=main.Version=$(VERSION) -X=main.Build=$(BUILD)"
@@ -24,16 +24,16 @@ fmt:
 	gofmt -s -w .
 
 lint:
-	golint -set_exit_status ./cmd ./utils/logging ./utils/kubernetes
+	golint -set_exit_status ./pkg/cmd ./pkg/logging ./pkg/kubetest ./cmd
 
-build: fmt
-	go build $(LDFLAGS) -o ./anchorctl -v ./main.go
+build: fmt lint
+	go build $(LDFLAGS) -o ./anchorctl -v ./cmd/main.go
 
 run: fmt build
-	./anchorctl test -f ./samples/kube-test.yaml -k kubetest
+	./anchorctl test -f ./samples/kube-test.yaml -k kubetest -v 5
 
 docker:
-	docker build -t "docker.pkg.github.com/trussio/anchorctl/$(BINARY):$(VERSION)" \
+	docker build -t "covarity/$(BINARY):$(VERSION)" \
 		--build-arg build=$(BUILD) --build-arg version=$(VERSION) \
 		-f Dockerfile .
 

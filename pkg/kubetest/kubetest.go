@@ -15,6 +15,7 @@ var requiredField = map[string][]string{
 var log *logging.Logger
 var testFilePath string
 
+// Assert function contains the logic to execute kubetests
 func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfig, testfile string) {
 
 	log = logger
@@ -39,6 +40,8 @@ func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfi
 
 	executeLifecycle(kubeTest.Spec.Lifecycle.PreStop, client)
 
+	results.checkThresholdPass()
+
 	log.Info("Passed", "true", "Passed Test")
 }
 
@@ -51,7 +54,7 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 			var jsonTestObj *jsonTest
 			res.addResultToRow(i, "AssertJSONPath")
 			err := mapstructure.Decode(test.Spec, &jsonTestObj)
-			res.addResultToRow(i, "JSONPath: "+jsonTestObj.JsonPath+" Value: "+jsonTestObj.Value)
+			res.addResultToRow(i, "JSONPath: "+jsonTestObj.JSONPath+" Value: "+jsonTestObj.Value)
 			if err != nil {
 				res.invalid++
 				res.addResultToRow(i, "❌")
@@ -59,7 +62,7 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 				continue
 			}
 			jsonTestObj.client = client
-			runKubeTester(jsonTestObj, test, &res, i)
+			runKubeTester(jsonTestObj, &test, &res, i)
 
 		case "AssertValidation":
 			var validationTest *validationTest
@@ -73,13 +76,13 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 				continue
 			}
 			validationTest.client = client
-			runKubeTester(validationTest, test, &res, i)
+			runKubeTester(validationTest, &test, &res, i)
 
 		case "AssertMutation":
 			var mutationTest *mutationTest
 			res.addResultToRow(i, "AssertMutation")
 			err := mapstructure.Decode(test.Spec, &mutationTest)
-			res.addResultToRow(i, "JSONPath: "+mutationTest.JsonPath+" Value "+mutationTest.Value)
+			res.addResultToRow(i, "JSONPath: "+mutationTest.JSONPath+" Value "+mutationTest.Value)
 			if err != nil {
 				res.invalid++
 				res.addResultToRow(i, "❌")
@@ -87,14 +90,14 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 				continue
 			}
 			mutationTest.client = client
-			runKubeTester(mutationTest, test, &res, i)
+			runKubeTester(mutationTest, &test, &res, i)
 		}
 	}
 	return &res
 }
 
-func runKubeTester(kubetester kubeTester, test test, res *testResult, i int) {
-	if result, err := kubetester.test(test.Resource); err != nil {
+func runKubeTester(kubetester kubeTester, test *test, res *testResult, i int) {
+	if result, err := kubetester.test(&test.Resource); err != nil {
 		res.addResultToRow(i, "❌")
 		res.invalid++
 	} else if result == false {

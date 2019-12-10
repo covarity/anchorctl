@@ -21,10 +21,9 @@ THE SOFTWARE.
 */
 package main
 
-import (
-	"github.com/covarity/anchorctl/cmd"
-)
+import "github.com/covarity/anchorctl/pkg/cmd"
 
+// Version and Build set through LD flags during build
 var (
 	Version = "development"
 	Build   = "build"

@@ -1,3 +1,4 @@
+// Package cmd test contains the logic for anchorctl test.
 /*
 Copyright © 2019 NAME HERE <EMAIL ADDRESS>
 

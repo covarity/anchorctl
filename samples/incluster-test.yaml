@@ -13,7 +13,7 @@ tests:
   - type: AssertValidation
     action: "CREATE"      # Allowed actions: CREATE, UPDATE, DELETE
     filePath: "/config/loadbalancer.yaml"
-    expectedError: "Internal error occurred: admission webhook \"webhook.openpolicyagent.org\" denied the request: External Loadbalancers cannot be deployed in this cluster"
+    containsResponse: "Internal error occurred: admission webhook \"webhook.openpolicyagent.org\" denied the request: External Loadbalancers cannot be deployed in this cluster"
   - type: AssertMutation
     action: "CREATE"      # Allowed actions: CREATE, UPDATE
     filePath: "/config/deploy.yaml"
