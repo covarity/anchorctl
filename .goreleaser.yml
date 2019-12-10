@@ -1,0 +1,25 @@
+---
+  project_name: anchorctl
+  
+  release:
+    github:
+      owner: covarity
+      name: anchorctl
+  
+  builds:
+    - main : ./cmd/main.go
+      binary: anchorctl
+      goos:
+        - darwin
+        - linux
+        - windows
+      goarch:
+        - amd64
+      ldflags: -X main.Version={{.Version}} -X main.GitTag={{.Tag}} -X main.BuildDate={{.Date}}
+      env:
+        - CGO_ENABLED=0
+  
+  archive:
+    files:
+      - README.md
+      - LICENSE.txt
