@@ -12,7 +12,7 @@ func (aj *jsonTest) test(res *resource) (bool, error) {
 		return false, err
 	}
 
-	return assertJSONPath(objIterms, aj.JsonPath, aj.Value)
+	return assertJSONPath(objIterms, aj.JSONPath, aj.Value)
 }
 
 func (av *validationTest) test(res *resource) (bool, error) {
@@ -53,7 +53,7 @@ func (am *mutationTest) test(res *resource) (bool, error) {
 	}
 
 	jpTest := &jsonTest{
-		JsonPath: am.JsonPath,
+		JSONPath: am.JSONPath,
 		Value:    am.Value,
 		client:   am.client,
 	}

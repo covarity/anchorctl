@@ -24,10 +24,10 @@ fmt:
 	gofmt -s -w .
 
 lint:
-	golint -set_exit_status ./cmd ./utils/logging ./utils/kubernetes
+	golint -set_exit_status ./pkg/cmd ./pkg/logging ./pkg/kubetest ./cmd
 
-build: fmt
-	go build $(LDFLAGS) -o ./anchorctl -v ./main.go
+build: fmt lint
+	go build $(LDFLAGS) -o ./anchorctl -v ./cmd/main.go
 
 run: fmt build
 	./anchorctl test -f ./samples/kube-test.yaml -k kubetest -v 5

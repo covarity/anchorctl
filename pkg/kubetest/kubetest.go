@@ -15,6 +15,7 @@ var requiredField = map[string][]string{
 var log *logging.Logger
 var testFilePath string
 
+// Assert function contains the logic to execute kubetests
 func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfig, testfile string) {
 
 	log = logger
@@ -53,7 +54,7 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 			var jsonTestObj *jsonTest
 			res.addResultToRow(i, "AssertJSONPath")
 			err := mapstructure.Decode(test.Spec, &jsonTestObj)
-			res.addResultToRow(i, "JSONPath: "+jsonTestObj.JsonPath+" Value: "+jsonTestObj.Value)
+			res.addResultToRow(i, "JSONPath: "+jsonTestObj.JSONPath+" Value: "+jsonTestObj.Value)
 			if err != nil {
 				res.invalid++
 				res.addResultToRow(i, "❌")
@@ -81,7 +82,7 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 			var mutationTest *mutationTest
 			res.addResultToRow(i, "AssertMutation")
 			err := mapstructure.Decode(test.Spec, &mutationTest)
-			res.addResultToRow(i, "JSONPath: "+mutationTest.JsonPath+" Value "+mutationTest.Value)
+			res.addResultToRow(i, "JSONPath: "+mutationTest.JSONPath+" Value "+mutationTest.Value)
 			if err != nil {
 				res.invalid++
 				res.addResultToRow(i, "❌")

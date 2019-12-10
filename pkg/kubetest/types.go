@@ -5,7 +5,7 @@ import (
 )
 
 type kubeTest struct {
-	ApiVersion   string `yaml:"apiVersion"`
+	APIVersion   string `yaml:"apiVersion"`
 	Kind         string
 	Metadata     metadata
 	Spec         kubeTestSpec
@@ -34,7 +34,7 @@ type kubeTester interface {
 }
 
 type jsonTest struct {
-	JsonPath string
+	JSONPath string
 	Value    string
 	client   *kubernetes.Clientset
 }
@@ -45,7 +45,7 @@ type validationTest struct {
 }
 
 type mutationTest struct {
-	JsonPath string
+	JSONPath string
 	Value    string
 	client   *kubernetes.Clientset
 }
