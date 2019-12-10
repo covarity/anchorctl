@@ -1,0 +1,15 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Push
+      run: |
+        docker build . -t docker.pkg.github.com/covarity/anchorctl/anchorctl:latest
+        docker images
+        docker login docker.pkg.github.com -u castlemilk -p "${{secrets.GITHUB_TOKEN}}"
+        docker push docker.pkg.github.com/covarity/anchorctl/anchorctl:latest

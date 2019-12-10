@@ -22,8 +22,7 @@ THE SOFTWARE.
 package main
 
 import (
-	"fmt"
-	"github.com/anchorageio/anchorctl/cmd"
+	"github.com/covarity/anchorctl/cmd"
 )
 
 var (
@@ -32,7 +31,5 @@ var (
 )
 
 func main() {
-	fmt.Println("Version: " + Version)
-	fmt.Println("Build: " + Build)
 	cmd.Execute()
 }
