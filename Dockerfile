@@ -12,7 +12,7 @@ RUN go mod download
 # Build
 ARG build
 ARG version
-RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=${version} -X main.Build=${build}" -o anchorctl
+RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=${version} -X main.Build=${build}" -o anchorctl ./cmd/main.go
 
 # Final Step
 FROM alpine

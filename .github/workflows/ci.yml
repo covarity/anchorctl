@@ -9,7 +9,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Push
       run: |
-        docker build . -t docker.pkg.github.com/covarity/anchorctl/anchorctl:latest
+        docker build . -t docker.pkg.github.com/covarity/anchorctl/anchorctl:latest ./cmd/main.go
         docker images
         docker login docker.pkg.github.com -u castlemilk -p "${{secrets.GITHUB_TOKEN}}"
         docker push docker.pkg.github.com/covarity/anchorctl/anchorctl:latest
