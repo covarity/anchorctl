@@ -1,3 +1,4 @@
+// Package cmd root initialises the config and main Execute function.
 /*
 Copyright © 2019 Tejas Cherukara
 
