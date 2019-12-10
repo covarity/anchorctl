@@ -12,4 +12,5 @@ require (
 	k8s.io/api v0.0.0-20191112020540-7f9008e52f64
 	k8s.io/apimachinery v0.0.0-20191111054156-6eb29fdf75dc
 	k8s.io/client-go v0.0.0-20191112100811-dac3b9c76aa0
+	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
 )

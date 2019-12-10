@@ -1,15 +1,14 @@
 package kubetest
 
 import (
-	"fmt"
-	"io/ioutil"
-	"reflect"
-
+	"bytes"
 	"gopkg.in/yaml.v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"io/ioutil"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/jsonpath"
 )
 
 // getKubeClientSet returns a kubernetes client set which can be used to connect to kubernetes cluster
@@ -38,32 +37,6 @@ func getKubeClient(incluster bool, filepath string) (*kubernetes.Clientset, erro
 	return clientset, nil
 }
 
-func getObject(client *kubernetes.Clientset, ref *objectRef) (interface{}, error) {
-
-	if ref.Type == "File" {
-		return nil, nil
-	}
-
-	var listOptions *metav1.ListOptions
-
-	if ref.Spec.LabelKey != "" {
-		listOptions = getListOptions(ref.Spec.LabelKey, ref.Spec.LabelValue)
-	}
-
-	switch ref.Type {
-
-	case "Pod":
-		return listPods(client, ref.Spec.Namespace, listOptions)
-
-	case "ConfigMap":
-		return listConfigMaps(client, ref.Spec.Namespace, listOptions)
-
-	default:
-		return nil, fmt.Errorf("Cannot detect object type")
-
-	}
-}
-
 func decodeTestFile(client *kubernetes.Clientset, filePath string) (*kubeTest, error) {
 	kubeTest := &kubeTest{}
 
@@ -80,24 +53,42 @@ func decodeTestFile(client *kubernetes.Clientset, filePath string) (*kubeTest, e
 	return kubeTest, nil
 }
 
-func getListOptions(key, value string) *metav1.ListOptions {
-	return &metav1.ListOptions{LabelSelector: key + "=" + value}
-}
+func assertJSONPath(objs []runtime.Object, path, value string) (bool, error) {
 
-func getSlice(t interface{}) []interface{} {
-	var slicedInterface []interface{}
-
-	switch reflect.TypeOf(t).Kind() {
-	case reflect.Slice:
-		s := reflect.ValueOf(t)
-
-		for i := 0; i < s.Len(); i++ {
-			slicedInterface = append(slicedInterface, s.Index(i).Interface())
-		}
-
-	default:
-		slicedInterface = append(slicedInterface, t)
+	jp := jsonpath.New("assertJsonpath")
+	jp.AllowMissingKeys(true)
+	err := jp.Parse("{" + path + "}")
+	passed := true
+	if err != nil {
+		log.Error(err, "Cannot parse JSONPath")
+		return false, err
 	}
 
-	return slicedInterface
+	buf := new(bytes.Buffer)
+
+	for _, i := range objs {
+		err = jp.Execute(buf, i)
+		if err != nil {
+			log.Error(err, "Cannot execute JSONPath")
+			passed = false
+			break
+		} else if buf.String() != value {
+			log.WarnWithFields(map[string]interface{}{
+				"jsonpath": path,
+				"expected": value,
+				"got":      buf.String(),
+				"status":   "FAILED",
+			}, "Failed asserting jsonpath on obj")
+			passed = false
+			break
+		}
+		buf.Reset()
+	}
+	log.InfoWithFields(map[string]interface{}{
+		"test":   "AssertJSONPath",
+		"path":   path,
+		"status": "PASSED",
+	}, "JSON Path matches expected value.")
+
+	return passed, err
 }
