@@ -1,5 +1,6 @@
 <!-- [![codecov](https://codecov.io/gh/trussio/anchorctl/branch/master/graph/badge.svg)](https://codecov.io/gh/trussio/anchorctl) -->
 <!-- [![Build Status](https://travis-ci.org/trussio/anchorctl.svg?branch=master)](https://travis-ci.org/trussio/anchorctl) -->
+[![Go Report Card](https://goreportcard.com/badge/github.com/covarity/anchorctl)](https://goreportcard.com/report/github.com/covarity/anchorctl)
 
 
 # Anchorctl
@@ -31,7 +32,7 @@ make docker
 
 ## Resources
 
-Resources provide common mechanisms to refer to an object or a file. 
+Resources provide common mechanisms to refer to an object or a file.
 
 ### Manifests
 
@@ -44,11 +45,11 @@ Manifests contain the following fields:
 ObjectRefs provide an interface to communicate with existing objects in the cluster. ObjectRef contains the following fields:
 ```yaml
 type: "Resource"
-spec: 
+spec:
     kind: Pod # Kind of kubernetes resource to look for
     namespace: default # Namespace of the resource
-    labelkey: hello # Label key of the resource
-    labelvalue: world # Label value of the resource
+    labels:
+      hello: world # Label value of the resource
 ```
 
 With the above information, `anchorctl` is able to find the object from a cluster.
@@ -102,8 +103,8 @@ Using this type of test, we can test the status of a deployment / pod, the numbe
       spec:
         kind: Pod
         namespace: applications
-        labelKey: hello
-        labelValue: world
+        labels:
+          hello: world
 ```
 
 - `AssertValidation`: Used to ensure that the validation admission controller throw the expected error. Take a file and
@@ -140,6 +141,7 @@ as expected.
 
 - go >= 1.13
 - Kubernetes Cluster
+- kubectl
 
 ## Why?
 
