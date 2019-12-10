@@ -25,8 +25,8 @@ spec:
         spec:
           kind: Pod
           namespace: applications
-          labelKey: hello
-          labelValue: world
+          labels:
+            hello: world
   - type: AssertValidation
     spec:
       containsResponse: "External Loadbalancers cannot be deployed in this cluster"

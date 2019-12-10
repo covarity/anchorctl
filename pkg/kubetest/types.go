@@ -26,15 +26,11 @@ type test struct {
 type metadata struct {
 	Name      string
 	Namespace string
-	Label     map[string]string
-}
-
-type kubeMetadata struct {
-	Metadata metadata
+	Labels    map[string]string
 }
 
 type kubeTester interface {
-	test(res resource) (bool, error)
+	test(res *resource) (bool, error)
 }
 
 type jsonTest struct {

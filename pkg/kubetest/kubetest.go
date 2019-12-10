@@ -39,6 +39,8 @@ func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfi
 
 	executeLifecycle(kubeTest.Spec.Lifecycle.PreStop, client)
 
+	results.checkThresholdPass()
+
 	log.Info("Passed", "true", "Passed Test")
 }
 
@@ -59,7 +61,7 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 				continue
 			}
 			jsonTestObj.client = client
-			runKubeTester(jsonTestObj, test, &res, i)
+			runKubeTester(jsonTestObj, &test, &res, i)
 
 		case "AssertValidation":
 			var validationTest *validationTest
@@ -73,7 +75,7 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 				continue
 			}
 			validationTest.client = client
-			runKubeTester(validationTest, test, &res, i)
+			runKubeTester(validationTest, &test, &res, i)
 
 		case "AssertMutation":
 			var mutationTest *mutationTest
@@ -87,14 +89,14 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 				continue
 			}
 			mutationTest.client = client
-			runKubeTester(mutationTest, test, &res, i)
+			runKubeTester(mutationTest, &test, &res, i)
 		}
 	}
 	return &res
 }
 
-func runKubeTester(kubetester kubeTester, test test, res *testResult, i int) {
-	if result, err := kubetester.test(test.Resource); err != nil {
+func runKubeTester(kubetester kubeTester, test *test, res *testResult, i int) {
+	if result, err := kubetester.test(&test.Resource); err != nil {
 		res.addResultToRow(i, "❌")
 		res.invalid++
 	} else if result == false {

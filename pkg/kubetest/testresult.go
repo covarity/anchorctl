@@ -40,8 +40,6 @@ func (res *testResult) print() {
 	fmt.Println()
 	testSumamry.Render()
 	fmt.Println()
-
-	res.validate()
 }
 
 func (res *testResult) addResultToRow(row int, add string) {
@@ -51,7 +49,7 @@ func (res *testResult) addResultToRow(row int, add string) {
 	res.testRuns[row] = append(res.testRuns[row], add)
 }
 
-func (res *testResult) validate() {
+func (res *testResult) checkThresholdPass() {
 	if res.successRatio < res.threshold {
 		log.Fatal(fmt.Errorf("Expected %.2f, Got %.2f", res.threshold, res.successRatio), "Failed Test Threshold")
 	}
