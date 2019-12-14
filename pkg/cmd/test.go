@@ -19,11 +19,11 @@ package cmd
 import (
 	"path/filepath"
 
+	"anchorctl/pkg/kubetest"
+	"anchorctl/pkg/logging"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
-	"anchorctl/pkg/kubetest"
-	"anchorctl/pkg/logging"
 )
 
 var description = `
