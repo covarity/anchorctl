@@ -22,8 +22,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
-	"pkg/kubetest"
-	"pkg/logging"
+	"anchorctl/pkg/kubetest"
+	"anchorctl/pkg/logging"
 )
 
 var description = `

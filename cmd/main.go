@@ -21,7 +21,7 @@ THE SOFTWARE.
 */
 package main
 
-import "pkg/cmd"
+import "anchorctl/pkg/cmd"
 
 // Version and Build set through LD flags during build
 var (
