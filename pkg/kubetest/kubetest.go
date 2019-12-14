@@ -1,7 +1,7 @@
 package kubetest
 
 import (
-	"github.com/covarity/anchorctl/pkg/logging"
+	"anchorctl/pkg/logging"
 	"github.com/mitchellh/mapstructure"
 	"k8s.io/client-go/kubernetes"
 )

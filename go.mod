@@ -1,8 +1,9 @@
-module github.com/covarity/anchorctl
+module anchorctl
 
 go 1.13
 
 require (
+	github.com/covarity/anchorctl v0.0.0-20191214001749-db20e758bd70
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/olekukonko/tablewriter v0.0.3
 	github.com/sirupsen/logrus v1.2.0
