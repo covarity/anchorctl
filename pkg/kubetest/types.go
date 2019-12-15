@@ -9,7 +9,6 @@ type kubeTest struct {
 	Kind         string
 	Metadata     metadata
 	Spec         kubeTestSpec
-	testFilePath string
 }
 
 type kubeTestSpec struct {

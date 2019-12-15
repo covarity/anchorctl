@@ -10,59 +10,32 @@ func TestValidateTestField(t *testing.T) {
 	log.SetVerbosity(0)
 
 	// Setup
-	successAssertJSONPath := &test{
-		Resource: resource{},
-		Type:     "AssertJSONPath",
-		Spec: map[string]interface{}{
-			"jsonPath": "test.json.path",
-			"value":    "test.json.path.value",
-		},
-	}
+	successAssertJSONPath := makeTestObj("AssertJSONPath", map[string]interface{}{
+		"jsonPath": "test.json.path",
+		"value":    "test.json.path.value",
+	})
+	failAssertJSONPath := makeTestObj("AssertJSONPath", map[string]interface{}{
+		"jonPath": "test.json.path",
+		"val":     "test.json.path.value",
+	})
 
-	failAssertJSONPath := &test{
-		Resource: resource{},
-		Type:     "AssertJSONPath",
-		Spec: map[string]interface{}{
-			"jonPath": "test.json.path",
-			"val":     "test.json.path.value",
-		},
-	}
+	successAssertValidation := makeTestObj("AssertValidation", map[string]interface{}{
+		"containsResponse": "Some expected error",
+	})
+	failAssertValidation := makeTestObj("AssertValidation", map[string]interface{}{
+		"Response": "Some expected error",
+	})
 
-	// Setup
-	successAssertValidation := &test{
-		Resource: resource{},
-		Type:     "AssertValidation",
-		Spec: map[string]interface{}{
-			"containsResponse": "Some expected error",
-		},
-	}
+	successAssertMutation := makeTestObj("AssertMutation", map[string]interface{}{
+		"jsonPath": "test.json.path",
+		"value":    "test.json.path.value",
+	})
+	failAssertMutation := makeTestObj("AssertMutation", map[string]interface{}{
+		"jonPath": "test.json.path",
+		"val":     "test.json.path.value",
+	})
 
-	failAssertValidation := &test{
-		Resource: resource{},
-		Type:     "AssertValidation",
-		Spec: map[string]interface{}{
-			"Response": "Some expected error",
-		},
-	}
-
-	// Setup
-	successAssertMutation := &test{
-		Resource: resource{},
-		Type:     "AssertMutation",
-		Spec: map[string]interface{}{
-			"jsonPath": "test.json.path",
-			"value":    "test.json.path.value",
-		},
-	}
-
-	failAssertMutation := &test{
-		Resource: resource{},
-		Type:     "AssertMutation",
-		Spec: map[string]interface{}{
-			"jonPath": "test.json.path",
-			"val":     "test.json.path.value",
-		},
-	}
+	emptyTestType := makeTestObj("", map[string]interface{}{})
 
 	tables := []struct {
 		message string
@@ -75,10 +48,19 @@ func TestValidateTestField(t *testing.T) {
 		{"Fail validate AssertValidation", failAssertValidation, false},
 		{"Successfully validate AssertMutation", successAssertMutation, true},
 		{"Fail validate AssertMutation", failAssertMutation, false},
+		{"Fail empty test type", emptyTestType, false},
 	}
 
 	for i, table := range tables {
 		result, _ := validateTestField(i, *table.obj)
 		assert.Equal(t, table.result, result, table.message)
+	}
+}
+
+func makeTestObj(testType string, spec map[string]interface{}) *test {
+	return &test{
+		Resource: resource{},
+		Type:     testType,
+		Spec:     spec,
 	}
 }

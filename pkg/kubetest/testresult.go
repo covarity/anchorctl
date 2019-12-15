@@ -46,6 +46,7 @@ func (res *testResult) addResultToRow(row int, add string) {
 	if res.testRuns == nil {
 		res.testRuns = make([][]string, 10)
 	}
+
 	res.testRuns[row] = append(res.testRuns[row], add)
 }
 

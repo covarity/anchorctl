@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/jsonpath"
+	"path/filepath"
 )
 
 // getKubeClientSet returns a kubernetes client set which can be used to connect to kubernetes cluster
@@ -40,6 +41,7 @@ func getKubeClient(incluster bool, filepath string) (*kubernetes.Clientset, erro
 func decodeTestFile(client *kubernetes.Clientset, filePath string) (*kubeTest, error) {
 	kubeTest := &kubeTest{}
 
+	filePath = filepath.Clean(filePath)
 	data, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, err

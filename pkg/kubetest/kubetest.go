@@ -23,16 +23,15 @@ func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfi
 	if err != nil {
 		log.Fatal(err, "Unable to decode test file")
 	}
-	kubeTest.testFilePath = testfile
 
-	executeLifecycle(kubeTest.Spec.Lifecycle.PostStart, client)
+	executeLifecycle(kubeTest.Spec.Lifecycle.PostStart)
 
 	results := runTests(client, kubeTest)
 	results.threshold = threshold
 	results.total = len(kubeTest.Spec.Tests)
 	results.print()
 
-	executeLifecycle(kubeTest.Spec.Lifecycle.PreStop, client)
+	executeLifecycle(kubeTest.Spec.Lifecycle.PreStop)
 
 	results.checkThresholdPass()
 
@@ -41,18 +40,22 @@ func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfi
 
 func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 	res := testResult{}
+
 	for i, test := range kubeTest.Spec.Tests {
 		switch test.Type {
 
 		case "AssertJSONPath":
 			var jsonTestObj *jsonTest
+
 			res.addResultToRow(i, "AssertJSONPath")
 			err := mapstructure.Decode(test.Spec, &jsonTestObj)
 			res.addResultToRow(i, "JSONPath: "+jsonTestObj.JSONPath+" Value: "+jsonTestObj.Value)
+
 			if err != nil {
 				res.invalid++
 				res.addResultToRow(i, "❌")
 				log.Warn("Error", err.Error(), "Decoding AssertJSONPath returned error")
+
 				continue
 			}
 			jsonTestObj.client = client
@@ -60,13 +63,16 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 
 		case "AssertValidation":
 			var validationTest *validationTest
+
 			res.addResultToRow(i, "AssertValidation")
 			err := mapstructure.Decode(test.Spec, &validationTest)
 			res.addResultToRow(i, "Expected Response: "+validationTest.ContainsResponse[:25]+"...")
+
 			if err != nil {
 				res.invalid++
 				res.addResultToRow(i, "❌")
 				log.Warn("Error", err.Error(), "Decoding AssertValidation returned error")
+
 				continue
 			}
 			validationTest.client = client
@@ -74,19 +80,23 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 
 		case "AssertMutation":
 			var mutationTest *mutationTest
+
 			res.addResultToRow(i, "AssertMutation")
 			err := mapstructure.Decode(test.Spec, &mutationTest)
 			res.addResultToRow(i, "JSONPath: "+mutationTest.JSONPath+" Value "+mutationTest.Value)
+
 			if err != nil {
 				res.invalid++
 				res.addResultToRow(i, "❌")
 				log.Warn("Error", err.Error(), "Decoding AssertMutation returned error")
+
 				continue
 			}
 			mutationTest.client = client
 			runKubeTester(mutationTest, &test, &res, i)
 		}
 	}
+
 	return &res
 }
 
