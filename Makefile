@@ -33,7 +33,7 @@ test-coverage:
 	@go test -short -coverprofile cover.out -covermode=atomic ./pkg/cmd ./pkg/logging ./pkg/kubetest ./cmd
 	@cat cover.out >> coverage.txt
 
-build: fmt lint
+build:
 	@go build $(LDFLAGS) -o ./anchorctl -v ./cmd/main.go
 
 run: fmt lint build

@@ -15,7 +15,7 @@ func TestValidateTestField(t *testing.T) {
 		Type:     "AssertJSONPath",
 		Spec: map[string]interface{}{
 			"jsonPath": "test.json.path",
-			"value": "test.json.path.value",
+			"value":    "test.json.path.value",
 		},
 	}
 
@@ -24,7 +24,7 @@ func TestValidateTestField(t *testing.T) {
 		Type:     "AssertJSONPath",
 		Spec: map[string]interface{}{
 			"jonPath": "test.json.path",
-			"val": "test.json.path.value",
+			"val":     "test.json.path.value",
 		},
 	}
 
@@ -51,7 +51,7 @@ func TestValidateTestField(t *testing.T) {
 		Type:     "AssertMutation",
 		Spec: map[string]interface{}{
 			"jsonPath": "test.json.path",
-			"value": "test.json.path.value",
+			"value":    "test.json.path.value",
 		},
 	}
 
@@ -60,15 +60,14 @@ func TestValidateTestField(t *testing.T) {
 		Type:     "AssertMutation",
 		Spec: map[string]interface{}{
 			"jonPath": "test.json.path",
-			"val": "test.json.path.value",
+			"val":     "test.json.path.value",
 		},
 	}
 
-
 	tables := []struct {
 		message string
-		obj  *test
-		result bool
+		obj     *test
+		result  bool
 	}{
 		{"Successfully validate AssertJSONPath", successAssertJSONPath, true},
 		{"Fail validate AssertJSONPath", failAssertJSONPath, false},
