@@ -92,7 +92,7 @@ func testExecute(cmd *cobra.Command, args []string) {
 	}
 
 	kubeconfig, err := cmd.Flags().GetString("kubeconfig")
-	if err != nil && incluster == false {
+	if err != nil && !incluster {
 		log.Fatal(err, "Failed to parse kubeconfig flag")
 	}
 

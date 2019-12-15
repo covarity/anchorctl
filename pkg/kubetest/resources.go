@@ -57,7 +57,7 @@ func (ob objectRef) valid() bool {
 
 func (ob objectRef) getObject(client *kubernetes.Clientset) ([]runtime.Object, error) {
 
-	if valid := ob.valid(); valid != true {
+	if valid := ob.valid(); !valid {
 		return nil, fmt.Errorf("AssertJSONPath object ref is invalid")
 	}
 
@@ -150,7 +150,7 @@ func (mf manifest) valid() bool {
 // ApplyFile mimics kubectl apply -f. Takes in a path to a file and applies that object to the cluster and returns the applied object.
 func (mf manifest) apply(client *kubernetes.Clientset, expectError bool) (*objectRef, error) {
 
-	if valid := mf.valid(); valid != true {
+	if valid := mf.valid(); !valid {
 		return nil, fmt.Errorf("Invalid Manifest to apply")
 	}
 
@@ -199,7 +199,7 @@ func (mf manifest) apply(client *kubernetes.Clientset, expectError bool) (*objec
 
 	if err != nil {
 
-		if expectError != true {
+		if !expectError {
 			log.WarnWithFields(map[string]interface{}{
 				"Path":   filePath,
 				"Action": mf.Action,

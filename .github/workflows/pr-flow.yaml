@@ -1,0 +1,63 @@
+name: Lint, Test, Build
+on: [pull_request]
+jobs:
+
+  lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: checkout
+        uses: actions/checkout@v1
+
+      - name: golangci-lint
+        uses: reviewdog/action-golangci-lint@v1
+        with:
+          github_token: ${{ secrets.github_token }}
+          golangci_lint_flags: "--enable-all --exclude-use-default=false"
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: go-setup
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+
+      - name: checkout
+        uses: actions/checkout@v1
+
+      - name: unit-tests
+        run: make test-coverage
+
+      - name: codecov-report
+        uses: codecov/codecov-action@v1.0.0
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+          file: ./coverage.txt
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - name: go-setup
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+
+      - name: checkout
+        uses: actions/checkout@v1
+
+      - name: build
+        run: make build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v1
+      - name: docker-build
+        run: docker build . -t covarity/anchorctl:latest

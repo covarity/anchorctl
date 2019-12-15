@@ -18,7 +18,7 @@ func getKubeClient(incluster bool, filepath string) (*kubernetes.Clientset, erro
 	var clientset *kubernetes.Clientset
 	var err error
 
-	if incluster == true {
+	if incluster {
 		config, err = rest.InClusterConfig()
 	} else {
 		config, err = clientcmd.BuildConfigFromFlags("", filepath)

@@ -39,7 +39,7 @@ func (av *validationTest) test(res *resource) (bool, error) {
 
 func (am *mutationTest) test(res *resource) (bool, error) {
 
-	if valid := res.Manifest.valid(); valid != true {
+	if valid := res.Manifest.valid(); !valid {
 		return false, fmt.Errorf("Invalid Manifest to apply")
 	}
 

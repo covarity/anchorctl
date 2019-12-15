@@ -6,12 +6,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-var requiredField = map[string][]string{
-	"AssertJSONPath":   {"jsonPath", "value"},
-	"AssertValidation": {"action", "filePath", "expectedError"},
-	"AssertMutation":   {"action", "filePath", "jsonPath", "value"},
-}
-
 var log *logging.Logger
 var testFilePath string
 
@@ -100,27 +94,11 @@ func runKubeTester(kubetester kubeTester, test *test, res *testResult, i int) {
 	if result, err := kubetester.test(&test.Resource); err != nil {
 		res.addResultToRow(i, "❌")
 		res.invalid++
-	} else if result == false {
+	} else if !result {
 		res.addResultToRow(i, "❌")
 		res.failed++
 	} else {
 		res.addResultToRow(i, "✅")
 		res.passed++
 	}
-}
-
-func validateTestField(requiredField map[string][]string, index int, test map[string]string) bool {
-
-	for _, i := range requiredField[test["type"]] {
-		if _, ok := test[i]; !ok {
-			log.WarnWithFields(map[string]interface{}{
-				"number":        index,
-				"testType":      test["type"],
-				"requiredField": i,
-			}, "Does not contain required field.")
-			return false
-		}
-	}
-
-	return true
 }
