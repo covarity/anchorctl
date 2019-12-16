@@ -14,9 +14,10 @@ import (
 
 // getKubeClientSet returns a kubernetes client set which can be used to connect to kubernetes cluster
 func getKubeClient(incluster bool, filepath string) (*kubernetes.Clientset, error) {
-
 	var config *rest.Config
+
 	var clientset *kubernetes.Clientset
+
 	var err error
 
 	if incluster {
@@ -38,11 +39,10 @@ func getKubeClient(incluster bool, filepath string) (*kubernetes.Clientset, erro
 	return clientset, nil
 }
 
-func decodeTestFile(client *kubernetes.Clientset, filePath string) (*kubeTest, error) {
+func decodeTestFile(filePath string) (*kubeTest, error) {
 	kubeTest := &kubeTest{}
 
-	filePath = filepath.Clean(filePath)
-	data, err := ioutil.ReadFile(filePath)
+	data, err := ioutil.ReadFile(filepath.Clean(filePath))
 	if err != nil {
 		return nil, err
 	}
@@ -56,11 +56,11 @@ func decodeTestFile(client *kubernetes.Clientset, filePath string) (*kubeTest, e
 }
 
 func assertJSONPath(objs []runtime.Object, path, value string) (bool, error) {
-
 	jp := jsonpath.New("assertJsonpath")
 	jp.AllowMissingKeys(true)
-	err := jp.Parse("{" + path + "}")
 	passed := true
+
+	err := jp.Parse("{" + path + "}")
 	if err != nil {
 		log.Error(err, "Cannot parse JSONPath")
 		return false, err
@@ -72,7 +72,9 @@ func assertJSONPath(objs []runtime.Object, path, value string) (bool, error) {
 		err = jp.Execute(buf, i)
 		if err != nil {
 			log.Error(err, "Cannot execute JSONPath")
+
 			passed = false
+
 			break
 		} else if buf.String() != value {
 			log.WarnWithFields(map[string]interface{}{
@@ -84,8 +86,10 @@ func assertJSONPath(objs []runtime.Object, path, value string) (bool, error) {
 			passed = false
 			break
 		}
+
 		buf.Reset()
 	}
+
 	log.InfoWithFields(map[string]interface{}{
 		"test":   "AssertJSONPath",
 		"path":   path,

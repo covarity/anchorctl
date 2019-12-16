@@ -16,7 +16,7 @@ func validateTestField(index int, test test) (bool, error) {
 			"testType":      test.Type,
 			"requiredField": "type",
 		}, "Does not contain required field.")
-		return false, fmt.Errorf("Does not contain required field")
+		return false, fmt.Errorf("does not contain required field")
 	}
 
 	for _, i := range requiredFields[test.Type] {
@@ -26,7 +26,7 @@ func validateTestField(index int, test test) (bool, error) {
 				"testType":      test.Type,
 				"requiredField": i,
 			}, "Does not contain required field.")
-			return false, fmt.Errorf("Does not contain required field")
+			return false, fmt.Errorf("does not contain required field")
 		}
 	}
 

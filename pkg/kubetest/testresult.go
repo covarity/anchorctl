@@ -14,11 +14,11 @@ type testResult struct {
 }
 
 func (res *testResult) print() {
-
 	testList := tablewriter.NewWriter(os.Stdout)
 	testList.SetHeader([]string{"Test Type", "Spec", "Passed"})
 	testList.SetBorder(false)
 	testList.AppendBulk(res.testRuns)
+
 	fmt.Println()
 	testList.Render()
 	fmt.Println()
@@ -33,10 +33,12 @@ func (res *testResult) print() {
 		{"Expected Coverage", fmt.Sprintf("%.2f", res.threshold)},
 		{"Actual Coverage", fmt.Sprintf("%.2f", res.successRatio)},
 	}
+
 	testSumamry := tablewriter.NewWriter(os.Stdout)
 	testSumamry.SetHeader([]string{"Tests", "Number"})
 	testSumamry.SetBorder(false)
 	testSumamry.AppendBulk(data)
+
 	fmt.Println()
 	testSumamry.Render()
 	fmt.Println()
@@ -52,13 +54,14 @@ func (res *testResult) addResultToRow(row int, add string) {
 
 func (res *testResult) checkThresholdPass() {
 	if res.successRatio < res.threshold {
-		log.Fatal(fmt.Errorf("Expected %.2f, Got %.2f", res.threshold, res.successRatio), "Failed Test Threshold")
+		log.Fatal(fmt.Errorf("expected %.2f, Got %.2f", res.threshold, res.successRatio), "Failed Test Threshold")
 	}
 }
 
 func (res *testResult) calculateSuccessRatio() float64 {
 	if res.total < 1 {
-		log.Fatal(fmt.Errorf("Total number of tests is less than 0"), "Exiting")
+		log.Fatal(fmt.Errorf("total number of tests is less than 0"), "Exiting")
 	}
+
 	return (float64(res.passed) / float64(res.total)) * 100
 }

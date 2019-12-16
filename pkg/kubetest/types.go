@@ -5,10 +5,10 @@ import (
 )
 
 type kubeTest struct {
-	APIVersion   string `yaml:"apiVersion"`
-	Kind         string
-	Metadata     metadata
-	Spec         kubeTestSpec
+	APIVersion string `yaml:"apiVersion"`
+	Kind       string
+	Metadata   metadata
+	Spec       kubeTestSpec
 }
 
 type kubeTestSpec struct {

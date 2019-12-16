@@ -11,15 +11,16 @@ var testFilePath string
 
 // Assert function contains the logic to execute kubetests
 func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfig, testfile string) {
-
 	log = logger
 
 	client, err := getKubeClient(incluster, kubeconfig)
 	if err != nil {
 		log.Fatal(err, "Unable to get kubernetes client")
 	}
+
 	testFilePath = testfile
-	kubeTest, err := decodeTestFile(client, testFilePath)
+
+	kubeTest, err := decodeTestFile(testFilePath)
 	if err != nil {
 		log.Fatal(err, "Unable to decode test file")
 	}
@@ -48,6 +49,7 @@ func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
 			var jsonTestObj *jsonTest
 
 			res.addResultToRow(i, "AssertJSONPath")
+
 			err := mapstructure.Decode(test.Spec, &jsonTestObj)
 			res.addResultToRow(i, "JSONPath: "+jsonTestObj.JSONPath+" Value: "+jsonTestObj.Value)
 

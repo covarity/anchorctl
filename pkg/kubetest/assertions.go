@@ -38,7 +38,7 @@ func (av *validationTest) test(res *resource) (bool, error) {
 
 func (am *mutationTest) test(res *resource) (bool, error) {
 	if valid := res.Manifest.valid(); !valid {
-		return false, fmt.Errorf("Invalid Manifest to apply")
+		return false, fmt.Errorf("invalid Manifest to apply")
 	}
 
 	objectMetadata, err := res.Manifest.apply(false)

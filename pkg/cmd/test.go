@@ -107,9 +107,7 @@ func testExecute(cmd *cobra.Command, args []string) {
 		log.Info("kind", "kubetest", "Starting Tests")
 
 		kubetest.Assert(log, threshold, incluster, kubeconfig, testfile)
-		if err != nil {
-			log.Fatal(err, "Failed Tests")
-		}
+
 		log.Info("kind", "kubetest", "Finished Tests")
 	}
 }

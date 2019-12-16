@@ -59,7 +59,7 @@ func (ob objectRef) valid() bool {
 func (ob objectRef) getObject(client *kubernetes.Clientset) ([]runtime.Object, error) {
 
 	if valid := ob.valid(); !valid {
-		return nil, fmt.Errorf("AssertJSONPath object ref is invalid")
+		return nil, fmt.Errorf("assertJSONPath object ref is invalid")
 	}
 
 	if ob.Type != "Resource" {
@@ -145,6 +145,7 @@ func (mf manifest) valid() bool {
 			"expected": "Resource Manifest path and action should be specified",
 			"got":      "Path: " + mf.Path + " Action: " + mf.Action,
 		}, "Failed getting the resource to apply.")
+
 		return false
 	}
 
@@ -156,17 +157,15 @@ func (mf manifest) valid() bool {
 func (mf manifest) apply(expectError bool) (*objectRef, error) {
 
 	if valid := mf.valid(); !valid {
-		return nil, fmt.Errorf("Invalid Manifest to apply")
+		return nil, fmt.Errorf("invalid Manifest to apply")
 	}
 
 	var filePath string
 	if testFilePath != "" {
-		filePath = filepath.Join(filepath.Dir(testFilePath), mf.Path)
+		filePath = filepath.Clean(filepath.Join(filepath.Dir(testFilePath), mf.Path))
 	} else {
-		filePath = mf.Path
+		filePath = filepath.Clean(mf.Path)
 	}
-
-	filePath = filepath.Clean(filePath)
 
 	ymlFile, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -198,8 +197,10 @@ func (mf manifest) apply(expectError bool) (*objectRef, error) {
 	var out []byte
 
 	if mf.Action == "CREATE" {
+		// #nosec
 		out, err = exec.Command("kubectl", "apply", "-f", filePath).CombinedOutput()
 	} else {
+		// #nosec
 		out, err = exec.Command("kubectl", "delete", "-f", filePath).CombinedOutput()
 	}
 
@@ -214,6 +215,7 @@ func (mf manifest) apply(expectError bool) (*objectRef, error) {
 		}
 
 		applyError := fmt.Errorf(string(out))
+
 		return nil, applyError
 	}
 
