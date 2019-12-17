@@ -40,7 +40,9 @@ func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfi
 }
 
 func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
-	res := testResult{}
+	res := testResult{
+		total: len(kubeTest.Spec.Tests),
+	}
 
 	for i, test := range kubeTest.Spec.Tests {
 		switch test.Type {

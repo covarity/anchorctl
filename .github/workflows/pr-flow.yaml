@@ -14,7 +14,11 @@ jobs:
         uses: reviewdog/action-golangci-lint@v1
         with:
           github_token: ${{ secrets.github_token }}
-          golangci_lint_flags: "--enable-all --exclude-use-default=false"
+          golangci_lint_flags: "--disable-all --enable=deadcode  --enable=gocyclo --enable=golint --enable=varcheck \
+                                  --enable=structcheck --enable=maligned --enable=errcheck --enable=dupl \
+                                  --enable=ineffassign --enable=interfacer --enable=unconvert --enable=goconst \
+                                  --enable=gosec --enable=megacheck --enable=stylecheck --enable=govet \
+                                  --enable=staticcheck --enable=unused --enable=gosimple --enable=typecheck"
 
   test:
     name: test

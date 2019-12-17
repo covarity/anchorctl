@@ -27,7 +27,7 @@ lint:
 	@golint -set_exit_status ./pkg/cmd ./pkg/logging ./pkg/kubetest ./cmd
 
 test:
-	@go test -short ./pkg/cmd ./pkg/logging ./pkg/kubetest ./cmd
+	@go test -v ./pkg/cmd ./pkg/logging ./pkg/kubetest ./cmd
 
 test-coverage:
 	@go test -short -coverprofile cover.out -covermode=atomic ./pkg/cmd ./pkg/logging ./pkg/kubetest ./cmd

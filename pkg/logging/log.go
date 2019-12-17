@@ -18,11 +18,6 @@ func (logger *Logger) SetVerbosity(verbosity int) {
 	Log.Verbosity = verbosity
 }
 
-// GetLogger gets the logger object
-func (logger *Logger) GetLogger() *logrus.Logger {
-	return Log.Log
-}
-
 // Info outputs info log with single field and value
 func (logger *Logger) Info(field, value, info string) {
 	Log.Log.WithFields(logrus.Fields{field: value}).Infoln(info)
