@@ -59,7 +59,7 @@ func TestAddResultToRow(t *testing.T) {
 	log.SetVerbosity(0)
 
 	emptyRuns := &testResult{
-		total: 1,
+		total:    1,
 		testRuns: nil,
 	}
 
@@ -71,7 +71,7 @@ func TestAddResultToRow(t *testing.T) {
 	}
 
 	testAddingToUninitialisedRow := &testResult{
-		total: 3,
+		total:    3,
 		testRuns: nil,
 	}
 
@@ -98,7 +98,7 @@ func TestAddResultToRow(t *testing.T) {
 
 func testOSExit(t *testing.T, testName string) {
 
-	// Run the test in a subprocess
+	// Run the test in a subprocess #nosec
 	cmd := exec.Command(os.Args[0], "-test.run="+testName)
 	cmd.Env = append(os.Environ(), "FLAG=1")
 	err := cmd.Run()
