@@ -1,36 +1,22 @@
 name: E2ETest
-on: [pull_request]
+on: [pull_request, push]
 jobs:
-  generate-policy:
-    name: Generate OPA policy
-    runs-on: [ubuntu-latest]
-    steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-go@v1
-      with:
-        go-version: 1.13
-    - name: Install latest version of Kustomize
-      run: |
-        GO111MODULE=on go install sigs.k8s.io/kustomize/kustomize/v3
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v1
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install 'jinja2-cli[yaml]'
   integration-tests:
-    name: Create a Kind cluster
+    name: create-kind-cluster 
     runs-on: [ubuntu-latest]
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-go@v1
       with:
         go-version: 1.13
-    - name: Install latest version of Kind
+    - name: install-kind
       run: |
         GO111MODULE=on go get sigs.k8s.io/kind
+    - name: build-image
+      uses: goreleaser/goreleaser-action@v1
+      with:
+        version: latest
+        args: release --skip-publish
     - name: Create Kind cluster
       run: |
         PATH=$(go env GOPATH)/bin:$PATH kind create cluster --config kind-config.yaml

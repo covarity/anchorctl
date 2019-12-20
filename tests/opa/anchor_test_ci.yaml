@@ -1,0 +1,52 @@
+apiVersion: anchor.covarity.dev/alpha1v1
+kind: KubeTest
+metadata:
+  name: opa-validation
+spec:
+  lifecycle:
+    postStart:
+    - path: "./fixtures/applications-ns.yaml"
+      action: "CREATE"
+    - path: "./fixtures/demo-ns.yaml"
+      action: "CREATE"
+    preStop:
+    - path: "./fixtures/applications-ns.yaml"
+      action: "DELETE"
+    - path: "./fixtures/demo-ns.yaml"
+      action: "DELETE"
+  tests:
+  - type: AssertJSONPath
+    spec:
+      jsonPath: .metadata.annotations['openpolicyagent\.org/policy-status']
+      value: '{"status":"ok"}'
+    resource:
+      objectRef:
+        type: Resource
+        spec:
+          kind: ConfigMap
+          namespace: opa
+          labels:
+            openpolicyagent.org/policy: rego
+  - type: AssertValidation
+    spec:
+      containsResponse: "External Loadbalancers cannot be deployed in this cluster"
+    resource:
+      manifest:
+        path: "./fixtures/loadbalancer.yaml"
+        action: CREATE
+  - type: AssertMutation
+    spec:
+      jsonPath: ".metadata.labels.billing-information"
+      value: "ACC108964"
+    resource:
+      manifest:
+        path: "./fixtures/deploy.yaml"
+        action: CREATE
+  - type: AssertMutation
+    spec:
+      jsonPath: ".metadata.labels.billing-information"
+      value: "DEMO-BILLING"
+    resource:
+      manifest:
+        path: "./fixtures/demo-deploy.yaml"
+        action: CREATE
