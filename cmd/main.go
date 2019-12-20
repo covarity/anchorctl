@@ -23,12 +23,6 @@ package main
 
 import "anchorctl/pkg/cmd"
 
-// Version and Build set through LD flags during build
-var (
-	Version = "development"
-	Build   = "build"
-)
-
 func main() {
 	cmd.Execute()
 }

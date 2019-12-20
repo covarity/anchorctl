@@ -1,5 +1,4 @@
 <!-- [![codecov](https://codecov.io/gh/trussio/anchorctl/branch/master/graph/badge.svg)](https://codecov.io/gh/trussio/anchorctl) -->
-<!-- [![Build Status](https://travis-ci.org/trussio/anchorctl.svg?branch=master)](https://travis-ci.org/trussio/anchorctl) -->
 [![Go Report Card](https://goreportcard.com/badge/github.com/covarity/anchorctl)](https://goreportcard.com/report/github.com/covarity/anchorctl)
 
 
@@ -163,4 +162,4 @@ The vision for `anchorctl`:
     - [Code](https://github.com/covarity/examples/blob/master/examples/test-admission-controller)
 - Kube Forum Sydney 2019 Talk:
     - [Slides](https://github.com/covarity/demos/tree/master/kube-forum-2019)
-    - Talk (Coming Soon)
+    - [Talk](https://youtu.be/tGDAuij5RvE)

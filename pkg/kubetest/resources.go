@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	meta "k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/gengo/namer"
@@ -31,9 +31,9 @@ type lifecycle struct {
 	PreStop   []manifest `yaml:"preStop"`
 }
 
-func executeLifecycle(manifests []manifest, client *kubernetes.Clientset) {
+func executeLifecycle(manifests []manifest) {
 	for _, i := range manifests {
-		_, err := i.apply(client, false)
+		_, err := i.apply(false)
 		if err != nil {
 			log.Fatal(err, "Failed Lifecycle steps")
 		}
@@ -52,17 +52,18 @@ func (ob objectRef) valid() bool {
 
 		return false
 	}
+
 	return true
 }
 
 func (ob objectRef) getObject(client *kubernetes.Clientset) ([]runtime.Object, error) {
 
-	if valid := ob.valid(); valid != true {
-		return nil, fmt.Errorf("AssertJSONPath object ref is invalid")
+	if valid := ob.valid(); !valid {
+		return nil, fmt.Errorf("assertJSONPath object ref is invalid")
 	}
 
 	if ob.Type != "Resource" {
-		return nil, fmt.Errorf("Unknown objectRef type %s", ob.Type)
+		return nil, fmt.Errorf("unknown objectRef type %s", ob.Type)
 	}
 
 	var api rest.Interface
@@ -77,7 +78,9 @@ func (ob objectRef) getObject(client *kubernetes.Clientset) ([]runtime.Object, e
 	case "Job":
 		api = client.BatchV1().RESTClient()
 
-	case "ComponentStatus", "ConfigMap", "Endpoint", "Event", "LimitRange", "Namespace", "Node", "PersistentVolume", "PersistentVolumeClaim", "Pod", "ResourceQuota", "Secrets", "Services", "ServiceAccount":
+	case "ComponentStatus", "ConfigMap", "Endpoint", "Event", "LimitRange",
+		"Namespace", "Node", "PersistentVolume", "PersistentVolumeClaim", "Pod",
+		"ResourceQuota", "Secrets", "Services", "ServiceAccount":
 		api = client.CoreV1().RESTClient()
 
 	case "NetworkPolicy":
@@ -93,7 +96,7 @@ func (ob objectRef) getObject(client *kubernetes.Clientset) ([]runtime.Object, e
 		api = client.SchedulingV1().RESTClient()
 
 	default:
-		return nil, fmt.Errorf("Api not found for the object")
+		return nil, fmt.Errorf("api not found for the object")
 	}
 
 	req := api.Get().Resource(pluralise(ob.Spec.Kind))
@@ -142,23 +145,26 @@ func (mf manifest) valid() bool {
 			"expected": "Resource Manifest path and action should be specified",
 			"got":      "Path: " + mf.Path + " Action: " + mf.Action,
 		}, "Failed getting the resource to apply.")
+
 		return false
 	}
+
 	return true
 }
 
-// ApplyFile mimics kubectl apply -f. Takes in a path to a file and applies that object to the cluster and returns the applied object.
-func (mf manifest) apply(client *kubernetes.Clientset, expectError bool) (*objectRef, error) {
+// ApplyFile mimics kubectl apply -f. Takes in a path to a file and applies that object to the
+// cluster and returns the applied object.
+func (mf manifest) apply(expectError bool) (*objectRef, error) {
 
-	if valid := mf.valid(); valid != true {
-		return nil, fmt.Errorf("Invalid Manifest to apply")
+	if valid := mf.valid(); !valid {
+		return nil, fmt.Errorf("invalid Manifest to apply")
 	}
 
 	var filePath string
 	if testFilePath != "" {
-		filePath = filepath.Dir(testFilePath) + "/" + mf.Path
+		filePath = filepath.Clean(filepath.Join(filepath.Dir(testFilePath), mf.Path))
 	} else {
-		filePath = mf.Path
+		filePath = filepath.Clean(mf.Path)
 	}
 
 	ymlFile, err := ioutil.ReadFile(filePath)
@@ -168,6 +174,7 @@ func (mf manifest) apply(client *kubernetes.Clientset, expectError bool) (*objec
 	}
 
 	viper.SetConfigType("yaml")
+
 	err = viper.ReadConfig(bytes.NewBuffer(ymlFile))
 	if err != nil {
 		log.Error(err, "Error reading test file.")
@@ -187,19 +194,19 @@ func (mf manifest) apply(client *kubernetes.Clientset, expectError bool) (*objec
 		"Path":   filePath,
 	}, "Applying action to file")
 
-	var cmd *exec.Cmd
+	var out []byte
 
 	if mf.Action == "CREATE" {
-		cmd = exec.Command("kubectl", "apply", "-f", filePath)
+		// #nosec
+		out, err = exec.Command("kubectl", "apply", "-f", filePath).CombinedOutput()
 	} else {
-		cmd = exec.Command("kubectl", "delete", "-f", filePath)
+		// #nosec
+		out, err = exec.Command("kubectl", "delete", "-f", filePath).CombinedOutput()
 	}
-
-	out, err := cmd.CombinedOutput()
 
 	if err != nil {
 
-		if expectError != true {
+		if !expectError {
 			log.WarnWithFields(map[string]interface{}{
 				"Path":   filePath,
 				"Action": mf.Action,
@@ -208,6 +215,7 @@ func (mf manifest) apply(client *kubernetes.Clientset, expectError bool) (*objec
 		}
 
 		applyError := fmt.Errorf(string(out))
+
 		return nil, applyError
 	}
 

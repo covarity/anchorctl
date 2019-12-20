@@ -18,11 +18,6 @@ func (logger *Logger) SetVerbosity(verbosity int) {
 	Log.Verbosity = verbosity
 }
 
-// GetLogger gets the logger object
-func (logger *Logger) GetLogger() *logrus.Logger {
-	return Log.Log
-}
-
 // Info outputs info log with single field and value
 func (logger *Logger) Info(field, value, info string) {
 	Log.Log.WithFields(logrus.Fields{field: value}).Infoln(info)
@@ -31,6 +26,7 @@ func (logger *Logger) Info(field, value, info string) {
 // InfoWithFields outputs info log with multiple field and values
 func (logger *Logger) InfoWithFields(fields map[string]interface{}, info string) {
 	var field logrus.Fields = fields
+
 	Log.Log.WithFields(field).Infoln(info)
 }
 
@@ -42,6 +38,7 @@ func (logger *Logger) Warn(field, value, warn string) {
 // WarnWithFields outputs warning log with multiple field and values
 func (logger *Logger) WarnWithFields(fields map[string]interface{}, warn string) {
 	var field logrus.Fields = fields
+
 	Log.Log.WithFields(field).Warnln(warn)
 }
 

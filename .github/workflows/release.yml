@@ -1,24 +1,35 @@
-name: goreleaser
+name: release
 
-on: [push]
+on:
+  push:
+    branches:
+      - master
 
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v1
-      -
-        name: Set up Go
+      - name: Set up Go
         uses: actions/setup-go@v1
         with:
           go-version: '1.13'
-      -
-        name: Run GoReleaser
+      - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v1
         with:
           version: latest
           args: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Push
+        run: |
+          docker build . -t covarity/anchorctl:latest
+          docker images
+          docker login --username covarity -p "${{secrets.DOCKERHUB_TOKEN}}"
+          docker push covarity/anchorctl:latest

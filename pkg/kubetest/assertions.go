@@ -6,7 +6,6 @@ import (
 )
 
 func (aj *jsonTest) test(res *resource) (bool, error) {
-
 	objIterms, err := res.ObjectRef.getObject(aj.client)
 	if err != nil {
 		return false, err
@@ -16,14 +15,14 @@ func (aj *jsonTest) test(res *resource) (bool, error) {
 }
 
 func (av *validationTest) test(res *resource) (bool, error) {
-
-	_, err := res.Manifest.apply(av.client, true)
+	_, err := res.Manifest.apply(true)
 	if err != nil && strings.Contains(err.Error(), av.ContainsResponse) {
 		log.InfoWithFields(map[string]interface{}{
 			"test":             "AssertValidation",
 			"containsResponse": av.ContainsResponse,
 			"status":           "PASSED",
 		}, "AssertValidation throws the expected error.")
+
 		return true, nil
 	}
 
@@ -38,12 +37,11 @@ func (av *validationTest) test(res *resource) (bool, error) {
 }
 
 func (am *mutationTest) test(res *resource) (bool, error) {
-
-	if valid := res.Manifest.valid(); valid != true {
-		return false, fmt.Errorf("Invalid Manifest to apply")
+	if valid := res.Manifest.valid(); !valid {
+		return false, fmt.Errorf("invalid Manifest to apply")
 	}
 
-	objectMetadata, err := res.Manifest.apply(am.client, false)
+	objectMetadata, err := res.Manifest.apply(false)
 	if err != nil {
 		return false, err
 	}

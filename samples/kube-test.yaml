@@ -42,3 +42,11 @@ spec:
       manifest:
         path: "./fixtures/deploy.yaml"
         action: CREATE
+  - type: AssertMutation
+    spec:
+      jsonPath: ".metadata.labels.billing-information"
+      value: "DEMO-BILLING"
+    resource:
+      manifest:
+        path: "./fixtures/demo-deploy.yaml"
+        action: CREATE
