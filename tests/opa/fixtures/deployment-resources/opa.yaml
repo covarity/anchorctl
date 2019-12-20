@@ -1,0 +1,204 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  labels:
+    app: opa
+    chart: opa-1.5.2
+    heritage: Tiller
+    release: opa
+  name: opa
+webhooks:
+- clientConfig:
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURBekNDQWV1Z0F3SUJBZ0lSQVBmb2tyakJjak90MjFZNHFTZnppbjR3RFFZSktvWklodmNOQVFFTEJRQXcKR3pFWk1CY0dBMVVFQXhNUWIzQmhMV0ZrYldsemMybHZiaTFqWVRBZUZ3MHhPVEE0TWpneE1URXlNek5hRncweQpPVEE0TWpVeE1URXlNek5hTUJzeEdUQVhCZ05WQkFNVEVHOXdZUzFoWkcxcGMzTnBiMjR0WTJFd2dnRWlNQTBHCkNTcUdTSWIzRFFFQkFRVUFBNElCRHdBd2dnRUtBb0lCQVFEQlFSbS9Tb3FNN1d5akUxUzBxbVdZLy9qT3p0aTgKTVpyRExKNzlmVW9VS0JVVDlqVGplRDZIbWZ0UVZzY1dBL1BkSzBJenNwdmRMNU9OeE1vNWoyT0oxemhDZVR1SQpBY3N5aSt2TlFuTXRwMnVmcVNCZjNBVGQzTkV0MXVLVi9kRDNMNFU2YS9kZ0FGTzQybFZ2Q2Z0OTVLM0VjL3RwCnEySDlENkxncW12Vy9KL21XVEVwS3VpcHc4OFRkT09rMk02dUQ0dmh2RkYzRjdJZ2ZQTEVwQ0E2dXAwaWN0N2wKaERHNTBmak5RTjZWaDExUEVPWjJJU05TbEYwUWRnTnhpOTliZlROa1JNV0RHN3NzNjZqaHB5TGxISkVnZ2laLwpqMkt2R3NpVHR4dHlRYlpuSitWbURJNE5JMHZVWW5MUS90NXZPNG1LRGxxcjFQZEc0Uys5bkxQNUFnTUJBQUdqClFqQkFNQTRHQTFVZER3RUIvd1FFQXdJQ3BEQWRCZ05WSFNVRUZqQVVCZ2dyQmdFRkJRY0RBUVlJS3dZQkJRVUgKQXdJd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQXY4VGNpeDloMzg1bApVMUp6QnhtTHNCaHRGa3ZLNURDQ0hJK1RTc1Rpay9GcmhNdzZhcUc4MllpOTE3eEVUUFg1NlJRZEcxWVZncmQzCm13QVB6NHhnVU9jSXpXNDcyVGdsb0lacFBoS3I2dmFmc2d6SnlaZHNET2FUbkh6Mk82SHNETEp6MzF0QmYzZDIKTURqR3pzVHQ4Um12b0MxN3RmbllFZm1XZ1JneWlldHM0MHFRTmxwKzBXdW9ESnZSc2hIQlQyaGoxLzREM2drOApybXE3WWJjUXpqdDZHbzR5RmE2bEJtK2hCMFpnbEVXRFluZjczamZISThkNXJqSmVLUE9vY1V0Qk02YU1hdmczCktHRVpGaWwxdS9zNVlxWHdoRHlPL3lqaEtOSWRRYlNXem5MRy9QMVZqSEhnb2hwN1IyZnF2d1JqdGNGUk1YTmIKTHVRd1RHekw5QT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    service:
+      name: opa
+      namespace: opa
+  failurePolicy: Ignore
+  name: webhook.openpolicyagent.org
+  namespaceSelector:
+    matchExpressions:
+    - key: openpolicyagent.org/webhook
+      operator: NotIn
+      values:
+      - ignore
+  rules:
+  - apiGroups:
+    - '*'
+    apiVersions:
+    - '*'
+    operations:
+    - '*'
+    resources:
+    - '*'
+  sideEffects: Unknown
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: opa
+    chart: opa-1.5.2
+    heritage: Tiller
+    release: opa
+  name: opa
+  namespace: opa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: opa
+    chart: opa-1.5.2
+    component: mgmt
+    heritage: Tiller
+    release: opa
+  name: opa-mgmt
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: opa
+    chart: opa-1.5.2
+    component: mgmt
+    heritage: Tiller
+    release: opa
+  name: opa-mgmt
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: opa-mgmt
+subjects:
+- kind: ServiceAccount
+  name: opa
+  namespace: opa
+---
+apiVersion: v1
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMrekNDQWVPZ0F3SUJBZ0lSQVBLS1QwbEJvV0NJV0NhcXpXaEtRUUV3RFFZSktvWklodmNOQVFFTEJRQXcKR3pFWk1CY0dBMVVFQXhNUWIzQmhMV0ZrYldsemMybHZiaTFqWVRBZUZ3MHhPVEE0TWpneE1URXlNek5hRncweQpPVEE0TWpVeE1URXlNek5hTUJZeEZEQVNCZ05WQkFNVEMyOXdZUzV2Y0dFdWMzWmpNSUlCSWpBTkJna3Foa2lHCjl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUF2SGRvNFlCZmJiVTRBb2Q4T1FJRkxNeFZWanUzNW1hWTk3WnIKK2VaUy9IOWN5OGRTQkhQbjE0ajZIYzJxeGJOckdhYjRrcTJwcHNOeXhzeVRqbW5ZWkJmUVJaUnl6bDdpaE40dgpNRG83Yzg2NUtDZVhqSjQxK2ZPWEJ6aEtueURiTWUxVGZES0txNG1PS3NodWNpTG0xbjRBSnNjNmdHV3dKSDc5CmNZTEVvb0VIWFBWZ2lVNW1OK2VCQjFqbTRxSGw1dFhPRXRFdHdPL3FsVWNRd0sxNTFJNStmU21TazVqbUZNN3oKT2lPTWlJWHVaVFlEK0p2d0NlMDltYTR6T2Q4T3RPbWNMVTdyMzJsUVVLaVFaTDd5eXN0NjQyUmRtbDdTei9ZMgo3U3dCWVpKcnFCRmxralVqbi9SdHhSeUpMTTNPQ2Q4Ti9DOVF0TG5OVTJQVnVNdzdIUUlEQVFBQm96OHdQVEFPCkJnTlZIUThCQWY4RUJBTUNCYUF3SFFZRFZSMGxCQll3RkFZSUt3WUJCUVVIQXdFR0NDc0dBUVVGQndNQ01Bd0cKQTFVZEV3RUIvd1FDTUFBd0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFHd3RxVkVsTkNTOEVKRUpaMGhuVDhuOQpQYTQ5bklqV2dMdVJsZXA2TU4waDZpZDc0MDhzYXA0VnpPMDVVaERnQ0JqQm9kT0llT2pyN1lDMURsY2xBVHBVClU1QU5JMkh4cnJBSk1UL1JlUmdUTUVTbTlLK1NVZ3NLV1RrVFNnVWtJa1hWYVdDU0ptS0s1SUxZL0ZDQW5ydjgKaUluZ0k0eCtZRmc2d0xEeUc2ZGh2RG9VY3VXZktnK293VWM3YW9sVHFmUUpGY01mL1RsNU5OODhPN3BTaitnMwpCQ0hRenNBak9FZm5VdDdZNFFPdEU3Z0dVQWxVaXhRc0Q0dEk3SUdabWM4VVpwSTVxcmZGbm82VG9PT1AzTXkzCk5mZDl5dTJtSDVMQW56dHVUUHFEaFdla2JQeXQ1QmFrVHRORmRhMGhMaGpNejQ1K2hGUTBpZ2I4QmZ4MU1MTT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBdkhkbzRZQmZiYlU0QW9kOE9RSUZMTXhWVmp1MzVtYVk5N1pyK2VaUy9IOWN5OGRTCkJIUG4xNGo2SGMycXhiTnJHYWI0a3EycHBzTnl4c3lUam1uWVpCZlFSWlJ5emw3aWhONHZNRG83Yzg2NUtDZVgKako0MStmT1hCemhLbnlEYk1lMVRmREtLcTRtT0tzaHVjaUxtMW40QUpzYzZnR1d3Skg3OWNZTEVvb0VIWFBWZwppVTVtTitlQkIxam00cUhsNXRYT0V0RXR3Ty9xbFVjUXdLMTUxSTUrZlNtU2s1am1GTTd6T2lPTWlJWHVaVFlECitKdndDZTA5bWE0ek9kOE90T21jTFU3cjMybFFVS2lRWkw3eXlzdDY0MlJkbWw3U3ovWTI3U3dCWVpKcnFCRmwKa2pVam4vUnR4UnlKTE0zT0NkOE4vQzlRdExuTlUyUFZ1TXc3SFFJREFRQUJBb0lCQVFDUUZwY1grS1o4NE5TKwpra2oxNk1aK0ZvYVQxRHBvS3o1OS9Ia1c2UEcvVzd4ZGk3ajM4SWxyTHExU3hkL3ZJSm9jVlp5cnY1djZCR21tCjlkZEdSVVFNV215QUZkdWtUY1RQSW5OZll0WDdWeXdXT0JiVWlrem9HVVQ1WHg4bUE5K3hqeW1KeGJaaEtWeUkKOXc0QnN3OWJJNkFJQmIrRFZMdFRXOGQyMWl4eHMvTmtRc1JFbXlsZWpQV1hQdnNvWlVOb3VTdll0azFMRFdOZwpmcDA0UjFXVy9RQ3oyeFl6SzVYMkp4RjZLZDNqeE9sUWRaR01aalhoYWhmWnQ4Vmd1THVlK1l2S2FwRU1yVWtjCjljM1BkeVVEU2lhTklLNlp1NWorbVJRTUYrU1BSMm1MWUZGTWI4c2xIZW1Sc25NMjhGVW1YRXFoUGFQQ0kyVEsKeEFRK2tuaTlBb0dCQVBwclJqQkF6ZGwrakFlZ3VRNjZVQVh0TFF0RW9JVmIyekVNS2Vrcm15dXo5V0ZYT3hURgpHcHhZZVZwRHp4NWc3M3cxZTdTRzJtYjNJYU5pTVc1Mm5yQ1FZTGFXREM0Nm9YWjkrNUhwcnhFQjJLeGcraEkzClVDVkN0Mk1Ob3RLWXFSUUFJN0NxT01Ca25iSEJDYWlKOEY4eXBEVE1rMWcxTDJUdTV5RUxhL2QzQW9HQkFNQ3EKck1UcmtwSDZWSXBMMHNiUWtPSW9MbWdHUmhZSEc1Ymo1b3NIbW1xMCtuK0YxV3pSSldnUGYzQndmWjczSWVOSQppZnRRdGVFNGNNaWxTWnZtdnJhUXM4ZTNseURVSmFIeVc5ZzkxbjlQejlyZldMY0JxZFVoMjhBZXI4K0VONjI3Cm9XNlpTWTRaV2dWMEZZelNYUEhRTjd0VnU3YnY2eFNsU2ZzYkJHOExBb0dBTkpxcVVPS2NHMjhvN1VWRytxQUsKeFdQd1RXaXFLN21ERHdlV0drUXR3WDE1TTJ5R25iTldCcmZUTGpJR1pVUkpxcGIxbUpPbmQyKzhvanl6VTVnWgpkOCtzY1U2TjJudzRoTktzTVJlY3pmN01URkhHMW1MR05EMlNsbjA3MGU5OXZSVFdhbnNubHNyTUVaWVNlRlFaCnFYWFM1c0IreDAzTTJmQVJuM0J0eXJzQ2dZRUFzVzM4Z2JUNFhCc1BNL1V6L1FnaUJVUS95R2pPcm9hSkwrSmQKYy9maWl4WjBBbkI3NWlTTnNGRmxhV1VQS3hBb1V5bUFlTU1SWElJZnk0ZjhTK2lxQlhNcFBXbWpjZ1l0U2dEcAorRENxa3NBcmlVTmFiZDdJU3BGTjBKWHlEc2VTaHhwZVJuNUFNTzdENm5YSFN0S0g2ZUY1RWJxWWpwWlFCY2xhCllqZTFVNVVDZ1lCY2ZQcGFTVHRjNkFxMmlzUFRnRDFBTlFNKzg3bjFUcWNJY0RkYnZHUm42Q3RBMXRMaEdIdWEKZ3B3TG1ZQzloZGpsZ0lzT1dnVGZMeVh2N3NqSU94dno4a2pwanRDRG9JeG9ZeWJvUkpQSThGS3Y5T2kxaXRRVwphenhxMUNlcnEvcTB6Q256VzRYNXZrQVY1VTlBbFdKREFpcXlKRUExYkpPZUJ5cGZraGRQK1E9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
+kind: Secret
+metadata:
+  labels:
+    app: opa
+    chart: opa-1.5.2
+    heritage: Tiller
+    release: opa
+  name: opa-cert
+  namespace: opa
+type: Opaque
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: opa
+    chart: opa-1.5.2
+    heritage: Tiller
+    release: opa
+  name: opa
+  namespace: opa
+spec:
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 443
+  selector:
+    app: opa
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: opa
+    chart: opa-1.5.2
+    heritage: Tiller
+    release: opa
+  name: opa
+  namespace: opa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opa
+  template:
+    metadata:
+      labels:
+        app: opa
+      name: opa
+    spec:
+      containers:
+      - args:
+        - run
+        - --server
+        - --tls-cert-file=/certs/tls.crt
+        - --tls-private-key-file=/certs/tls.key
+        - --addr=0.0.0.0:443
+        - --log-level=debug
+        - --log-format=text
+        - --insecure-addr=127.0.0.1:8181
+        image: openpolicyagent/opa:0.13.4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 443
+            scheme: HTTPS
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        name: opa
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 443
+            scheme: HTTPS
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        resources: {}
+        volumeMounts:
+        - mountPath: /certs
+          name: certs
+          readOnly: true
+      - args:
+        - --opa-url=http://127.0.0.1:8181/v1
+        - --replicate-path=kubernetes
+        - --enable-policies=true
+        - --policies=opa
+        - --require-policy-label=true
+        image: openpolicyagent/kube-mgmt:0.9
+        imagePullPolicy: IfNotPresent
+        name: mgmt
+        resources: {}
+      nodeSelector: {}
+      serviceAccountName: opa
+      tolerations: []
+      volumes:
+      - name: certs
+        secret:
+          secretName: opa-cert
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    app: opa
+    chart: opa-1.5.2
+    heritage: Tiller
+    release: opa
+  name: opa
+  namespace: opa
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: opa
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opa

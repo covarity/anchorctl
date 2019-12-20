@@ -1,5 +1,5 @@
 name: E2ETest
-on: [pull_request, push]
+on: [pull_request]
 jobs:
   integration-tests:
     name: create-kind-cluster 
@@ -17,12 +17,40 @@ jobs:
       with:
         version: latest
         args: release --skip-publish
-    - name: Create Kind cluster
+    - name: create-kind-cluster
       run: |
-        PATH=$(go env GOPATH)/bin:$PATH kind create cluster --config kind-config.yaml
+        kind create cluster
+        export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
+        kubectl cluster-info
+        kubectl get nodes -o wide
     - name: Run some sanity checks
       # kubectl is already installed on the Github Ubuntu worker
       run: |
+        export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
+        echo $KUBECONFIG
+        echo $HOME
+        ls -la ~/.kube
         kubectl get nodes -o wide
         kubectl get pods --all-namespaces -o wide
         kubectl get services --all-namespaces -o wide
+    - name: setup-opa
+      run: |
+        export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
+        docker pull openpolicyagent/opa:0.13.4
+        docker pull openpolicyagent/kube-mgmt:0.9
+        kind load docker-image openpolicyagent/opa:0.13.4
+        kind load docker-image openpolicyagent/kube-mgmt:0.9
+        kubectl create namespace opa
+        kubectl apply -f tests/opa/fixtures/deployment-resources -n opa
+        kubectl wait -n opa --for=condition=available --timeout=600s deployment/opa
+        kubectl apply -n opa -f tests/opa/fixtures/opa-policy
+        sleep 20
+    - name: run-achorctl-opa-test
+      run: |
+        chmod a+x dist/anchorctl_linux_amd64/anchorctl
+        export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
+        cp $KUBECONFIG $HOME/.kube/config
+        ./dist/anchorctl_linux_amd64/anchorctl test -f tests/opa/anchor_test_ci.yaml -k kubetest
+    - name: cleanup
+      run: |
+        kind delete cluster

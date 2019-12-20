@@ -5,14 +5,10 @@ metadata:
 spec:
   lifecycle:
     postStart:
-    - path: "./fixtures/applications-ns.yaml"
-      action: "CREATE"
-    - path: "./fixtures/demo-ns.yaml"
+    - path: "./fixtures/test-resources/applications-ns.yaml"
       action: "CREATE"
     preStop:
-    - path: "./fixtures/applications-ns.yaml"
-      action: "DELETE"
-    - path: "./fixtures/demo-ns.yaml"
+    - path: "./fixtures/test-resources/applications-ns.yaml"
       action: "DELETE"
   tests:
   - type: AssertJSONPath
@@ -32,7 +28,7 @@ spec:
       containsResponse: "External Loadbalancers cannot be deployed in this cluster"
     resource:
       manifest:
-        path: "./fixtures/loadbalancer.yaml"
+        path: "./fixtures/test-resources/loadbalancer.yaml"
         action: CREATE
   - type: AssertMutation
     spec:
@@ -40,13 +36,5 @@ spec:
       value: "ACC108964"
     resource:
       manifest:
-        path: "./fixtures/deploy.yaml"
-        action: CREATE
-  - type: AssertMutation
-    spec:
-      jsonPath: ".metadata.labels.billing-information"
-      value: "DEMO-BILLING"
-    resource:
-      manifest:
-        path: "./fixtures/demo-deploy.yaml"
+        path: "./fixtures/test-resources/deploy.yaml"
         action: CREATE
