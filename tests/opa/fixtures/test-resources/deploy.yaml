@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    run: nginx-labels
+  name: nginx-labels
+  namespace: applications
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: nginx-labels
+  template:
+    metadata:
+      labels:
+        run: nginx-labels
+    spec:
+      containers:
+        - image: nginx
+          name: nginx-labels
+          resources: {}

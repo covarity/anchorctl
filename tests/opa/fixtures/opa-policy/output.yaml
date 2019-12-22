@@ -1,0 +1,140 @@
+apiVersion: v1
+data:
+  common-main.rego: "package system\n\n###########################################################################\n#
+    Implementation of the k8s admission control external webhook interface,\n# combining
+    validating and mutating admission controllers\n###########################################################################\n\nmain
+    = {\n\t\"apiVersion\": \"admission.k8s.io/v1beta1\",\n\t\"kind\": \"AdmissionReview\",\n\t\"response\":
+    response,\n}\n\ndefault response = {\"allowed\": true}\n\n# non-patch response
+    i.e. validation response\nresponse = x {\n\tcount(patch) = 0\n\n\tx := {\n\t\t\"allowed\":
+    false,\n\t\t\"status\": {\"reason\": reason},\n\t}\n\n\treason = concat(\", \",
+    deny)\n\treason != \"\"\n}\n\n# patch response i.e. mutating respone\nresponse
+    = x {\n\tcount(patch) > 0\n\n\t# if there are missing leaves e.g. trying to add
+    a label to something that doesn't\n\t# yet have any, we need to create the leaf
+    nodes as well\n\n\tfullPatches := ensureParentPathsExist(cast_array(patch))\n\n\tx
+    := {\n\t\t\"allowed\": true,\n\t\t\"patchType\": \"JSONPatch\",\n\t\t\"patch\":
+    base64.encode(json.marshal(fullPatches)),\n\t}\n}\n\nisValidRequest {\n\t# not
+    sure if this might be a race condition, it might get called before\n\t# all the
+    validation rules have been run\n\tcount(deny) = 0\n}\n\nisCreateOrUpdate {\n\tisCreate\n}\n\nisCreateOrUpdate
+    {\n\tisUpdate\n}\n\nisCreate {\n\tinput.request.operation == \"CREATE\"\n}\n\nisUpdate
+    {\n\tinput.request.operation == \"UPDATE\"\n}\n\nisPod {\n\tinput.request.kind.kind
+    == \"Pod\"\n}\n\n###########################################################################\n#
+    PATCH helpers\n# Note: These rules assume that the input is an object\n# not an
+    AdmissionRequest, because labels and annotations\n# can apply to various sub-objects
+    within a request\n# So from the context of an AdmissionRequest they need to\n#
+    be called like\n#   hasLabelValue(\"foo\", \"bar\") with input as input.request.object\n#
+    or\n#   hasLabelValue(\"foo\", \"bar\") with input as input.request.oldObject\n###########################################################################\n\nhasLabels(obj)
+    {\n\tobj.metadata.labels\n}\n\nhasLabel(obj, label) {\n\tobj.metadata.labels[label]\n}\n\nhasLabelValue(obj,
+    key, val) {\n\tobj.metadata.labels[key] = val\n}\n\nhasAnnotations(obj) {\n\tobj.metadata.annotations\n}\n\nhasAnnotation(obj,
+    annotation) {\n\tobj.metadata.annotations[annotation]\n}\n\nhasAnnotationValue(obj,
+    key, val) {\n\tobj.metadata.annotations[key] = val\n}\n\nhasPatch(patches, patch)
+    {\n\tpatches[_] = patch\n}\n\nisPatchResponse(res) {\n\tres.response.patchType
+    = \"JSONPatch\"\n\tres.response.patch\n}\n\ncontains(arr, elem) {\n\tarr[_] =
+    elem\n}\n\nhasAffinity(spec, key, value) {\n\tspec.affinity\n\tspec.affinity.nodeAffinity\n\tspec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution\n\tspec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[_]\n\tspec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[_].matchExpressions[_]\n\tspec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[_].matchExpressions[i].key
+    == key\n\tspec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[_].matchExpressions[i].values[_]
+    == value\n}\n\n\n# Given array of JSON patches create and prepend new patches
+    that create missing paths.\nensureParentPathsExist(patches) = result {\n\tpaths
+    := {p.path | p := patches[_]}\n\tnewPatches := {makePath(prefixArray) |\n\t\tpaths[path]\n\t\tfullLength
+    := count(path)\n\t\tpathArray := split(path, \"/\")\n\n\t\t# Need a slice of the
+    path_array with all but the last element.\n\t\t# No way to do that with arrays,
+    but we can do it with strings.\n\t\tarrayLength := count(pathArray)\n\t\tlastElementLength
+    := count(pathArray[minus(arrayLength, 1)])\n\n\t\t# this assumes paths starts
+    with '/'\n\t\tprefixPath := substring(path, 1, (fullLength - lastElementLength)
+    - 2)\n\t\tprefixArray := split(prefixPath, \"/\")\n\t\tnot inputPathExists(prefixArray)
+    with input as input.request.object\n\t}\n\n\tresult := array.concat(cast_array(newPatches),
+    patches)\n}\n\n# Create the JSON patch to ensure the @path_array exists\nmakePath(pathArray)
+    = result {\n\tpathStr := concat(\"/\", array.concat([\"\"], pathArray))\n\n\tresult
+    = {\n\t\t\"op\": \"add\",\n\t\t\"path\": pathStr,\n\t\t\"value\": {},\n\t}\n}\n\n#
+    Check that the given @path exists as part of the input object.\ninputPathExists(path)
+    {\n\twalk(input, [path, _])\n}\n\n# Dummy deny and patch to please the compiler\n\ndeny[msg]
+    {\n\tinput.request.kind == \"AdmissionReview\"\n\tmsg = \"Input must be Kubernetes
+    AdmissionRequest\"\n}\n\npatch[patchCode] {\n\tinput.kind == \"ThisHadBetterNotBeARealKind\"\n\tpatchCode
+    = {}\n}"
+kind: ConfigMap
+metadata:
+  labels:
+    openpolicyagent.org/policy: rego
+  name: common-main
+  namespace: opa
+---
+apiVersion: v1
+data:
+  lb-services-main.rego: |
+    package system
+
+    deny[msg] {
+        input.request.resource.resource = "services"
+        input.request.object.spec.type = "LoadBalancer"
+        not hasAnnotationValue(input.request.object, "cloud.google.com/load-balancer-type", "Internal")
+        isCreateOrUpdate
+        msg := "External Loadbalancers cannot be deployed in this cluster"
+    }
+
+    deny[msg] {
+        namespaces := ["ingress"]
+        input.request.resource.resource = "services"
+        input.request.object.spec.type = "LoadBalancer"
+        hasAnnotationValue(input.request.object, "cloud.google.com/load-balancer-type", "Internal")
+        input.request.namespace != namespaces[_]
+        isCreate
+        msg := sprintf("Internal Loadbalancers cannot be deployed to %s namespace", [input.request.namespace])
+    }
+kind: ConfigMap
+metadata:
+  labels:
+    openpolicyagent.org/policy: rego
+  name: lb-services-main
+  namespace: opa
+---
+apiVersion: v1
+data:
+  mutate-affinity-main.rego: "package system\n\n############################################################\n#
+    PATCH rules\n#\n# Note: All patch rules should start with `isValidRequest` and
+    `isCreateOrUpdate`\n############################################################\n\nmutateAffinityResources
+    = [\"deployments\", \"jobs\", \"cronjobs\", \"replicasets\"]\n\nmutateAffinityFunctionKey
+    = \"anchor.trussio/function\"\n\npatch [patchCode] {\n    isValidRequest\n\tisCreateOrUpdate\n
+    \   namespaces := [\"istio-system\",\"ops\"]\n\tinput.request.resource.resource
+    = mutateAffinityResources[_]\n\n\tany([ bool | namespaces[_] = element; bool =
+    startswith(input.request.namespace, element)])\n    functionValue := \"operation-tools\"\n
+    \   not hasAffinity(input.request.object.spec.template.spec, mutateAffinityFunctionKey,
+    functionValue)\n\tpatchCode = makeAffinityPatch(mutateAffinityFunctionKey, functionValue,
+    input.request.object.spec.template.spec)\n}\n\n# Construct the patch object for
+    the K8s Config for deployments\n# Add affinity config if doesn't exist\nmakeAffinityPatch(functionKey,
+    functionValue, spec) = {\n        \"op\": \"add\",\n        \"path\": \"/spec/template/spec/affinity\",\n
+    \       \"value\": {\n            \"nodeAffinity\": {\n                \"requiredDuringSchedulingIgnoredDuringExecution\":
+    {\n                    \"nodeSelectorTerms\": [{\n                        \"matchExpressions\":
+    [{\n                            \"key\": functionKey,\n                            \"operator\":
+    \"In\",\n                            \"values\": [functionValue]\n                        }]\n
+    \                   }]\n                }\n            }\n        }\n    }  {\n
+    \       not spec.affinity\n    } else = {\n        \"op\": \"add\",\n        \"path\":
+    \"/spec/template/spec/affinity/nodeAffinity/requiredDuringSchedulingIgnoredDuringExecution\",\n
+    \       \"value\": {\n            \"nodeSelectorTerms\": [{\n                \"matchExpressions\":
+    [{\n                    \"key\": functionKey,\n                    \"operator\":
+    \"In\",\n                    \"values\": [functionValue]\n                }]\n
+    \           }]\n        }\n    }  {\n        not spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution\n
+    \   } else =  {\n        \"op\": \"add\",\n        \"path\": \"/spec/template/spec/affinity/nodeAffinity/requiredDuringSchedulingIgnoredDuringExecution/nodeSelectorTerms/0/matchExpressions\",\n
+    \       \"value\": [{\n            \"key\": functionKey,\n            \"operator\":
+    \"In\",\n            \"values\": [functionValue]\n        }]\n    }  {\n        true\n
+    \   }\n"
+kind: ConfigMap
+metadata:
+  labels:
+    openpolicyagent.org/policy: rego
+  name: mutate-affinity-main
+  namespace: opa
+---
+apiVersion: v1
+data:
+  mutate-label-main.rego: "package system\n\n############################################################\n#
+    PATCH rules\n#\n# Note: All patch rules should start with `isValidRequest` and
+    `isCreateOrUpdate`\n############################################################\n\nmutateLabelResourceList
+    = [\"deployments\", \"jobs\", \"cronjobs\", \"replicasets\"]\n\npatch [patchCode]
+    {\n    isValidRequest\n\tisCreateOrUpdate\n\tinput.request.resource.resource =
+    mutateLabelResourceList[_]\n    input.request.namespace = \"applications\"\n    patchCode
+    = { \"op\": \"add\", \"path\": \"/metadata/labels/billing-information\", \"value\":
+    \"ACC108964\" }\n\n}\n\n"
+kind: ConfigMap
+metadata:
+  labels:
+    openpolicyagent.org/policy: rego
+  name: mutate-label-main
+  namespace: opa

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-world
+  namespace: applications
+  labels:
+    app: hello-world
+spec:
+  ports:
+  - name: 8765-8765
+    port: 8765
+    protocol: TCP
+    targetPort: 8765
+  selector:
+    app: hello-world
+  type: LoadBalancer
+status:
+  loadBalancer: {}
