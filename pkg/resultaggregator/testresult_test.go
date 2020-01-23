@@ -1,37 +1,59 @@
 package resultaggregator
 
 import (
+	"anchorctl/pkg/logging"
+	"fmt"
 	"github.com/stretchr/testify/assert"
+	"math"
 	"os"
 	"os/exec"
 	"testing"
 )
 
-func TestCalculateSuccessRatio(t *testing.T) {
+func TestNewTestResult(t *testing.T) {
+	result := NewTestResult(2, logging.Log)
 
+	assert.Equal(t, 2, result.total, "Expected total of TestResult to be 2.")
+}
+
+func TestNewTestRun(t *testing.T) {
+	result := NewTestRun("SomeTest", "Some test step")
+
+	assert.Equal(t, "SomeTest", result.TestType, "Expected test type as SomeTest.")
+	assert.Equal(t, false, result.Passed, "Expected test passed to be false.")
+	assert.Equal(t, false, result.Invalid, "Expected test invalid to be false.")
+}
+
+func TestAddInvalidTestRun(t *testing.T) {
+	errorMessage := "Test Error"
 	log.SetVerbosity(0)
+	testResult := NewTestResult(2, logging.Log)
 
-	var passed, total = 1, 3
-	expectedRatio := float64(passed) / float64(total) * 100
+	testResult.AddInvalidTestRun("SomeTest", fmt.Errorf(errorMessage))
 
-	successfullyCalculateThreshold := &TestResult{
-		passed: passed,
-		total:  total,
-	}
+	assert.Equal(t, "Test Error", testResult.testRuns[0].Desc, "Expected test run desc to be error string")
+	assert.Equal(t, "SomeTest", testResult.testRuns[0].TestType, "Expected test type to be SomeTest")
+	assert.Equal(t, true, testResult.testRuns[0].Invalid, "Expected test to be Invalid")
+}
 
-	assert.Equal(t, expectedRatio, successfullyCalculateThreshold.calculateSuccessRatio(), "Calculate success ratio")
+func TestAddRun(t *testing.T) {
+	result := NewTestResult(1, logging.Log)
 
-	expectError := &TestResult{
-		total: 0,
-	}
+	result.AddRun(&TestRun{
+		TestType: "SomeTest",
+		Desc:     "Some test type",
+		Passed:   true,
+	})
 
-	if os.Getenv("FLAG") == "1" {
-		expectError.calculateSuccessRatio()
-		return
-	}
+	assert.Equal(t, "SomeTest", result.testRuns[0].TestType, "Expected test type to be SomeTest")
+	assert.Equal(t, "Some test type", result.testRuns[0].Desc, "Expected test type to be Some test type")
+}
 
-	testOSExit(t, "TestCalculateSuccessRatio")
+func TestSetThreshold(t *testing.T) {
+	result := NewTestResult(1, logging.Log)
+	result.SetThreshold(70)
 
+	assert.Equal(t, 70.00, result.threshold, "Expected threshold to be 70")
 }
 
 func TestCheckThresholdPass(t *testing.T) {
@@ -50,50 +72,40 @@ func TestCheckThresholdPass(t *testing.T) {
 		return
 	}
 
-	testOSExit(t, "TestCheckThresholdPass")
+	OSExitTest(t, "TestCheckThresholdPass")
 
 }
 
-func TestAddResultToRow(t *testing.T) {
+func TestPrintSummary(t *testing.T) {
+	result := NewTestResult(3, logging.Log)
 
-	//log.SetVerbosity(0)
-	//
-	//emptyRuns := &TestResult{
-	//	total:    1,
-	//	testRuns: nil,
-	//}
-	//
-	//testAddingToExistingRow := &TestResult{
-	//	total: 1,
-	//}
-	//
-	//testAddingToUninitialisedRow := &TestResult{
-	//	total:    3,
-	//	testRuns: nil,
-	//}
-	//
-	//tables := []struct {
-	//	message  string
-	//	obj      *TestResult
-	//	row      int
-	//	addStr   string
-	//	checkRow int
-	//	checkCol int
-	//	expected string
-	//}{
-	//	{"Add string to uninitialised list", emptyRuns, 0, "hello", 0, 0, "hello"},
-	//	{"Add string to initialised row with existing list", testAddingToExistingRow, 0, "world", 0, 1, "world"},
-	//	{"Add string to initialised row", testAddingToUninitialisedRow, 2, "world", 2, 0, "world"},
-	//}
+	result.AddRun(&TestRun{
+		TestType: "PassedTest",
+		Desc:     "Passed test",
+		Passed:   true,
+	})
 
-	//for _, table := range tables {
-	//table.obj.addResultToRow(table.row, table.addStr)
-	//assert.Equal(t, table.expected, table.obj.testRuns[table.checkRow][table.checkCol], table.message)
-	//}
+	result.AddRun(&TestRun{
+		TestType: "FailedTest",
+		Desc:     "Failed Test",
+		Passed:   false,
+	})
 
+	result.AddRun(&TestRun{
+		TestType: "InvalidTest",
+		Desc:     "Invalid Test",
+		Invalid:  true,
+	})
+
+	result.printSummary()
+
+	assert.Equal(t, 1, result.passed, "Expected passed to be one.")
+	assert.Equal(t, 1, result.failed, "Expected failed to be one.")
+	assert.Equal(t, 1, result.invalid, "Expected invalid to be one.")
+	assert.Equal(t, math.Floor(100/3.0), result.successRatio, "Expected success threshold to be 1/3.")
 }
 
-func testOSExit(t *testing.T, testName string) {
+func OSExitTest(t *testing.T, testName string) {
 
 	// Run the test in a subprocess #nosec
 	cmd := exec.Command(os.Args[0], "-test.run="+testName)

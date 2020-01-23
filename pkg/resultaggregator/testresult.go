@@ -3,6 +3,7 @@ package resultaggregator
 import (
 	"anchorctl/pkg/logging"
 	"fmt"
+	"math"
 	"os"
 
 	"github.com/kataras/tablewriter"
@@ -34,15 +35,15 @@ func NewTestRun(testType string, desc string) *TestRun {
 	}
 }
 
-func (res *TestResult) AddInvalidTestRun(testType string, err error) *TestRun {
+func (res *TestResult) AddInvalidTestRun(testType string, err error) {
 	log.Warn("Error", err.Error(), "Decoding "+testType+" returned error")
-	return &TestRun{
+	res.AddRun(&TestRun{
 		Index:    len(res.testRuns) + 1,
 		TestType: testType,
 		Desc:     err.Error(),
 		Passed:   false,
 		Invalid:  true,
-	}
+	})
 }
 
 func (res *TestResult) AddRun(testRun *TestRun) {
@@ -80,6 +81,7 @@ func (res *TestResult) printSummary() {
 	for _, i := range res.testRuns {
 		if i.Invalid {
 			res.invalid++
+			continue
 		}
 
 		if i.Passed {
@@ -93,7 +95,7 @@ func (res *TestResult) printSummary() {
 		log.Fatal(fmt.Errorf("total number of tests is less than 0"), "Exiting")
 	}
 
-	res.successRatio = (float64(res.passed) / float64(res.total)) * 100
+	res.successRatio = math.Floor((float64(res.passed) / float64(res.total)) * 100)
 
 	data := [][]string{
 		{"Total", fmt.Sprintf("%d", res.total)},

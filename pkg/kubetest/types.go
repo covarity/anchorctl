@@ -28,3 +28,15 @@ type lifecycle struct {
 	PostStart []resource.Manifest `yaml:"postStart"`
 	PreStop   []resource.Manifest `yaml:"preStop"`
 }
+
+type Options struct {
+	Incluster    bool
+	Kubeconfig   string
+	TestFilepath string
+	Logger       *logging.Logger
+}
+
+type lifecycle struct {
+	PostStart []resource.Manifest `yaml:"postStart"`
+	PreStop   []resource.Manifest `yaml:"preStop"`
+}
