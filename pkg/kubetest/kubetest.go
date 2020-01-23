@@ -2,117 +2,91 @@ package kubetest
 
 import (
 	"anchorctl/pkg/logging"
+	"anchorctl/pkg/resultaggregator"
+	"fmt"
 	"github.com/mitchellh/mapstructure"
 	"k8s.io/client-go/kubernetes"
+	"strconv"
 )
 
 var log *logging.Logger
 var testFilePath string
 
 // Assert function contains the logic to execute kubetests
-func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfig, testfile string) {
-	log = logger
+func (kt *KubeTest) Assert() *resultaggregator.TestResult {
 
-	client, err := getKubeClient(incluster, kubeconfig)
+	testFilePath = kt.Opts.TestFilepath
+	log = kt.Opts.Logger
+
+	client, err := getKubeClient(kt.Opts.Incluster, kt.Opts.Kubeconfig)
 	if err != nil {
 		log.Fatal(err, "Unable to get kubernetes client")
 	}
 
-	testFilePath = testfile
+	log.Info("Status", "Post-Start", "Starting post start lifecycle")
 
-	kubeTest, err := decodeTestFile(testFilePath)
-	if err != nil {
-		log.Fatal(err, "Unable to decode test file")
-	}
+	executeLifecycle(kt.Lifecycle.PostStart)
 
-	executeLifecycle(kubeTest.Spec.Lifecycle.PostStart)
+	log.Info("Status", "Tests", "Starting kube tests")
 
-	results := runTests(client, kubeTest)
-	results.threshold = threshold
-	results.total = len(kubeTest.Spec.Tests)
-	results.print()
+	results := runTests(client, kt)
 
-	executeLifecycle(kubeTest.Spec.Lifecycle.PreStop)
+	log.Info("Status", "Pre-Stop", "Starting pre stop lifecycle")
 
-	results.checkThresholdPass()
+	executeLifecycle(kt.Lifecycle.PreStop)
 
-	log.Info("Passed", "true", "Passed Test")
+	log.Info("Status", "Finished", "Finished Running Kube Tests")
+	return results
+
 }
 
-func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
-	res := testResult{
-		total: len(kubeTest.Spec.Tests),
-	}
+func runTests(client *kubernetes.Clientset, kubeTest *KubeTest) *resultaggregator.TestResult {
+	res := resultaggregator.NewTestResult(len(kubeTest.Tests))
 
-	for i, test := range kubeTest.Spec.Tests {
+	for i, test := range kubeTest.Tests {
 		switch test.Type {
 
 		case "AssertJSONPath":
 			var jsonTestObj *jsonTest
 
-			res.addResultToRow(i, "AssertJSONPath")
-
 			err := mapstructure.Decode(test.Spec, &jsonTestObj)
-			res.addResultToRow(i, "JSONPath: "+jsonTestObj.JSONPath+" Value: "+jsonTestObj.Value)
-
 			if err != nil {
-				res.invalid++
-				res.addResultToRow(i, "❌")
+				res.AddInvalidTestRun("AssertJSONPath", err)
 				log.Warn("Error", err.Error(), "Decoding AssertJSONPath returned error")
-
 				continue
 			}
 			jsonTestObj.client = client
-			runKubeTester(jsonTestObj, &test, &res, i)
+			res.AddRun(jsonTestObj.test(&test.Resource))
 
 		case "AssertValidation":
 			var validationTest *validationTest
 
-			res.addResultToRow(i, "AssertValidation")
 			err := mapstructure.Decode(test.Spec, &validationTest)
-			res.addResultToRow(i, "Expected Response: "+validationTest.ContainsResponse[:25]+"...")
-
 			if err != nil {
-				res.invalid++
-				res.addResultToRow(i, "❌")
+				res.AddInvalidTestRun("AssertValidation", err)
 				log.Warn("Error", err.Error(), "Decoding AssertValidation returned error")
-
 				continue
 			}
 			validationTest.client = client
-			runKubeTester(validationTest, &test, &res, i)
+			res.AddRun(validationTest.test(&test.Resource))
 
 		case "AssertMutation":
 			var mutationTest *mutationTest
 
-			res.addResultToRow(i, "AssertMutation")
 			err := mapstructure.Decode(test.Spec, &mutationTest)
-			res.addResultToRow(i, "JSONPath: "+mutationTest.JSONPath+" Value "+mutationTest.Value)
-
 			if err != nil {
-				res.invalid++
-				res.addResultToRow(i, "❌")
+				res.AddInvalidTestRun("AssertMutation", err)
 				log.Warn("Error", err.Error(), "Decoding AssertMutation returned error")
-
 				continue
 			}
 			mutationTest.client = client
-			runKubeTester(mutationTest, &test, &res, i)
+			res.AddRun(mutationTest.test(&test.Resource))
+
+		default:
+			res.AddInvalidTestRun("Invalid", fmt.Errorf("Unknown Test type"))
+			log.Warn("index", strconv.Itoa(i), "Unknown test type")
 		}
 	}
 
-	return &res
-}
-
-func runKubeTester(kubetester kubeTester, test *test, res *testResult, i int) {
-	if result, err := kubetester.test(&test.Resource); err != nil {
-		res.addResultToRow(i, "❌")
-		res.invalid++
-	} else if !result {
-		res.addResultToRow(i, "❌")
-		res.failed++
-	} else {
-		res.addResultToRow(i, "✅")
-		res.passed++
-	}
+	return res
 }

@@ -15,7 +15,7 @@
         - windows
       goarch:
         - amd64
-      ldflags: -X main.Version={{.Version}} -X main.GitTag={{.Tag}} -X main.BuildDate={{.Date}}
+      ldflags: -X anchorctl/pkg/cmd.Version={{.Version}} -X main.GitTag={{.Tag}} -X anchorctl/pkg/cmd.Build={{.Date}}
       env:
         - GO111MODULE=on
   archive:

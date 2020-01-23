@@ -1,19 +1,15 @@
 package kubetest
 
 import (
+	"anchorctl/pkg/logging"
+	"anchorctl/pkg/resultaggregator"
 	"k8s.io/client-go/kubernetes"
 )
 
-type kubeTest struct {
-	APIVersion string `yaml:"apiVersion"`
-	Kind       string
-	Metadata   metadata
-	Spec       kubeTestSpec
-}
-
-type kubeTestSpec struct {
+type KubeTest struct {
 	Lifecycle lifecycle `yaml:"lifecycle"`
 	Tests     []test
+	Opts	  Options
 }
 
 type test struct {
@@ -22,14 +18,8 @@ type test struct {
 	Spec     map[string]interface{}
 }
 
-type metadata struct {
-	Name      string
-	Namespace string
-	Labels    map[string]string
-}
-
 type kubeTester interface {
-	test(res *resource) (bool, error)
+	test(res *resource) *resultaggregator.TestRun
 }
 
 type jsonTest struct {
@@ -47,4 +37,37 @@ type mutationTest struct {
 	JSONPath string
 	Value    string
 	client   *kubernetes.Clientset
+}
+
+type Options struct {
+	Incluster bool
+	Kubeconfig string
+	TestFilepath string
+	Logger  *logging.Logger
+}
+
+type resource struct {
+	ObjectRef objectRef `yaml:"objectRef"`
+	Manifest  manifest  `yaml:"manifest"`
+}
+
+type objectRef struct {
+	Type string        `yaml:"type"`
+	Spec objectRefSpec `yaml:"spec"`
+}
+
+type lifecycle struct {
+	PostStart []manifest `yaml:"postStart"`
+	PreStop   []manifest `yaml:"preStop"`
+}
+
+type objectRefSpec struct {
+	Kind      string `yaml:"kind"`
+	Namespace string `yaml:"namespace"`
+	Labels    map[string]string
+}
+
+type manifest struct {
+	Path   string `yaml:"path"`
+	Action string `yaml:"action"`
 }

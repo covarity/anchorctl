@@ -32,3 +32,33 @@ func validateTestField(index int, test test) (bool, error) {
 
 	return true, nil
 }
+
+func (ob objectRef) valid() bool {
+	if ob.Type == "" || ob.Spec.Kind == "" || ob.Spec.Namespace == "" ||
+		ob.Spec.Labels == nil {
+
+		log.WarnWithFields(map[string]interface{}{
+			"resource": "objectRef",
+			"expected": "Resource ObjectRef type, kind, namespace, label value and label key should be specified",
+			"got":      "Type: " + ob.Type + " Kind: " + ob.Spec.Kind + " Namespace: " + ob.Spec.Namespace,
+		}, "Failed getting the resource to apply.")
+
+		return false
+	}
+
+	return true
+}
+
+func (mf manifest) valid() bool {
+	if mf.Path == "" || mf.Action == "" {
+		log.WarnWithFields(map[string]interface{}{
+			"resource": "manifest",
+			"expected": "Resource Manifest path and action should be specified",
+			"got":      "Path: " + mf.Path + " Action: " + mf.Action,
+		}, "Failed getting the resource to apply.")
+
+		return false
+	}
+
+	return true
+}

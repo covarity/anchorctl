@@ -1,20 +1,41 @@
 package kubetest
 
 import (
-	"fmt"
+	"anchorctl/pkg/resultaggregator"
 	"strings"
 )
 
-func (aj *jsonTest) test(res *resource) (bool, error) {
+func (aj *jsonTest) test(res *resource) (*resultaggregator.TestRun) {
+	testRun := &resultaggregator.TestRun{
+		TestType: "JSON Path Desc",
+		Desc:     aj.JSONPath + " == " + aj.Value,
+		Passed:   false,
+		Invalid:  false,
+	}
 	objIterms, err := res.ObjectRef.getObject(aj.client)
+
 	if err != nil {
-		return false, err
+		testRun.Invalid = true
+		return testRun
 	}
 
-	return assertJSONPath(objIterms, aj.JSONPath, aj.Value)
+	passed, err :=  assertJSONPath(objIterms, aj.JSONPath, aj.Value)
+	if err != nil {
+		testRun.Invalid = true
+		return testRun
+	}
+	testRun.Passed = passed
+	return testRun
 }
 
-func (av *validationTest) test(res *resource) (bool, error) {
+func (av *validationTest) test(res *resource) (*resultaggregator.TestRun) {
+	testRun := &resultaggregator.TestRun{
+		TestType: "Validation Desc",
+		Desc:     "Contains error: " + av.ContainsResponse,
+		Passed:   false,
+		Invalid:  false,
+	}
+
 	_, err := res.Manifest.apply(true)
 	if err != nil && strings.Contains(err.Error(), av.ContainsResponse) {
 		log.InfoWithFields(map[string]interface{}{
@@ -22,8 +43,8 @@ func (av *validationTest) test(res *resource) (bool, error) {
 			"containsResponse": av.ContainsResponse,
 			"status":           "PASSED",
 		}, "AssertValidation throws the expected error.")
-
-		return true, nil
+		testRun.Passed = true
+		return testRun
 	}
 
 	log.WarnWithFields(map[string]interface{}{
@@ -33,17 +54,26 @@ func (av *validationTest) test(res *resource) (bool, error) {
 		"status":   "FAILED",
 	}, "AssertValidation Failed")
 
-	return false, nil
+	return testRun
 }
 
-func (am *mutationTest) test(res *resource) (bool, error) {
+func (am *mutationTest) test(res *resource) (*resultaggregator.TestRun) {
+	testRun := &resultaggregator.TestRun{
+		TestType: "Mutation Desc",
+		Desc:     am.JSONPath + " == " + am.Value,
+		Passed:   false,
+		Invalid:  false,
+	}
+
 	if valid := res.Manifest.valid(); !valid {
-		return false, fmt.Errorf("invalid Manifest to apply")
+		testRun.Invalid = true
+		return testRun
 	}
 
 	objectMetadata, err := res.Manifest.apply(false)
 	if err != nil {
-		return false, err
+		testRun.Invalid = true
+		return testRun
 	}
 
 	jsonTestResource := &resource{
@@ -56,5 +86,9 @@ func (am *mutationTest) test(res *resource) (bool, error) {
 		client:   am.client,
 	}
 
-	return jpTest.test(jsonTestResource)
+	jsonPathTest := jpTest.test(jsonTestResource)
+
+	testRun.Invalid = jsonPathTest.Invalid
+	testRun.Passed = jsonPathTest.Passed
+	return testRun
 }

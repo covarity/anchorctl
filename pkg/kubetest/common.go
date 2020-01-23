@@ -2,14 +2,11 @@ package kubetest
 
 import (
 	"bytes"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/jsonpath"
-	"path/filepath"
 )
 
 // getKubeClientSet returns a kubernetes client set which can be used to connect to kubernetes cluster
@@ -39,22 +36,6 @@ func getKubeClient(incluster bool, filepath string) (*kubernetes.Clientset, erro
 	return clientset, nil
 }
 
-func decodeTestFile(filePath string) (*kubeTest, error) {
-	kubeTest := &kubeTest{}
-
-	data, err := ioutil.ReadFile(filepath.Clean(filePath))
-	if err != nil {
-		return nil, err
-	}
-
-	err = yaml.Unmarshal(data, &kubeTest)
-	if err != nil {
-		return nil, err
-	}
-
-	return kubeTest, nil
-}
-
 func assertJSONPath(objs []runtime.Object, path, value string) (bool, error) {
 	jp := jsonpath.New("assertJsonpath")
 	jp.AllowMissingKeys(true)
@@ -72,9 +53,7 @@ func assertJSONPath(objs []runtime.Object, path, value string) (bool, error) {
 		err = jp.Execute(buf, i)
 		if err != nil {
 			log.Error(err, "Cannot execute JSONPath")
-
 			passed = false
-
 			break
 		} else if buf.String() != value {
 			log.WarnWithFields(map[string]interface{}{
@@ -98,3 +77,13 @@ func assertJSONPath(objs []runtime.Object, path, value string) (bool, error) {
 
 	return passed, err
 }
+
+func executeLifecycle(manifests []manifest) {
+	for _, i := range manifests {
+		_, err := i.apply(false)
+		if err != nil {
+			log.Fatal(err, "Failed Lifecycle steps")
+		}
+	}
+}
+

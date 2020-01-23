@@ -16,46 +16,6 @@ import (
 	"path/filepath"
 )
 
-type resource struct {
-	ObjectRef objectRef `yaml:"objectRef"`
-	Manifest  manifest  `yaml:"manifest"`
-}
-
-type objectRef struct {
-	Type string        `yaml:"type"`
-	Spec objectRefSpec `yaml:"spec"`
-}
-
-type lifecycle struct {
-	PostStart []manifest `yaml:"postStart"`
-	PreStop   []manifest `yaml:"preStop"`
-}
-
-func executeLifecycle(manifests []manifest) {
-	for _, i := range manifests {
-		_, err := i.apply(false)
-		if err != nil {
-			log.Fatal(err, "Failed Lifecycle steps")
-		}
-	}
-}
-
-func (ob objectRef) valid() bool {
-	if ob.Type == "" || ob.Spec.Kind == "" || ob.Spec.Namespace == "" ||
-		ob.Spec.Labels == nil {
-
-		log.WarnWithFields(map[string]interface{}{
-			"resource": "objectRef",
-			"expected": "Resource ObjectRef type, kind, namespace, label value and label key should be specified",
-			"got":      "Type: " + ob.Type + " Kind: " + ob.Spec.Kind + " Namespace: " + ob.Spec.Namespace,
-		}, "Failed getting the resource to apply.")
-
-		return false
-	}
-
-	return true
-}
-
 func (ob objectRef) getObject(client *kubernetes.Clientset) ([]runtime.Object, error) {
 
 	if valid := ob.valid(); !valid {
@@ -66,40 +26,16 @@ func (ob objectRef) getObject(client *kubernetes.Clientset) ([]runtime.Object, e
 		return nil, fmt.Errorf("unknown objectRef type %s", ob.Type)
 	}
 
-	var api rest.Interface
-
-	switch ob.Spec.Kind {
-	case "DaemonSet", "Deployment", "ReplicaSet", "StatefulSet":
-		api = client.AppsV1().RESTClient()
-
-	case "HorizontalPodAutoscaler":
-		api = client.AutoscalingV1().RESTClient()
-
-	case "Job":
-		api = client.BatchV1().RESTClient()
-
-	case "ComponentStatus", "ConfigMap", "Endpoint", "Event", "LimitRange",
-		"Namespace", "Node", "PersistentVolume", "PersistentVolumeClaim", "Pod",
-		"ResourceQuota", "Secrets", "Services", "ServiceAccount":
-		api = client.CoreV1().RESTClient()
-
-	case "NetworkPolicy":
-		api = client.NetworkingV1().RESTClient()
-
-	case "PodDisruptionBudget", "PodSecurityPolicies":
-		api = client.PolicyV1beta1().RESTClient()
-
-	case "ClusterRole", "ClusterRoleBinding", "Role", "RoleBinding":
-		api = client.RbacV1().RESTClient()
-
-	case "PriorityClass":
-		api = client.SchedulingV1().RESTClient()
-
-	default:
-		return nil, fmt.Errorf("api not found for the object")
+	api, isNamespaced, e := ob.getAPI(client)
+	if e != nil {
+		return nil, e
 	}
 
 	req := api.Get().Resource(pluralise(ob.Spec.Kind))
+
+	if isNamespaced {
+		req = req.Namespace(ob.Spec.Namespace)
+	}
 
 	for k, v := range ob.Spec.Labels {
 		req.Param("labelSelector", k+"="+v)
@@ -114,6 +50,50 @@ func (ob objectRef) getObject(client *kubernetes.Clientset) ([]runtime.Object, e
 	return meta.ExtractList(res)
 }
 
+func (ob objectRef) getAPI(client *kubernetes.Clientset) (rest.Interface, bool, error) {
+	var api rest.Interface
+	var isNamespaced = true
+
+	switch ob.Spec.Kind {
+	case "DaemonSet", "Deployment", "ReplicaSet", "StatefulSet":
+		api = client.AppsV1().RESTClient()
+
+	case "HorizontalPodAutoscaler":
+		api = client.AutoscalingV1().RESTClient()
+
+	case "Job":
+		api = client.BatchV1().RESTClient()
+
+	case "ComponentStatus", "Namespace", "Node", "PersistentVolume":
+		isNamespaced = false
+		api = client.CoreV1().RESTClient()
+
+	case "ConfigMap", "Endpoint", "Event", "LimitRange", "PersistentVolumeClaim", "Pod",
+		"ResourceQuota", "Secrets", "Services", "ServiceAccount":
+		api = client.CoreV1().RESTClient()
+
+	case "NetworkPolicy":
+		api = client.NetworkingV1().RESTClient()
+
+	case "PodDisruptionBudget", "PodSecurityPolicies":
+		api = client.PolicyV1beta1().RESTClient()
+
+	case "ClusterRole", "ClusterRoleBinding":
+		isNamespaced = false
+		api = client.RbacV1().RESTClient()
+
+	case "Role", "RoleBinding":
+		api = client.RbacV1().RESTClient()
+
+	case "PriorityClass":
+		api = client.SchedulingV1().RESTClient()
+
+	default:
+		return nil, false, fmt.Errorf("api not found for the object")
+	}
+	return api, isNamespaced, nil
+}
+
 func pluralise(str string) string {
 
 	exceptions := make(map[string]string)
@@ -125,31 +105,6 @@ func pluralise(str string) string {
 	}
 
 	return pluralise.Name(&pluralType)
-}
-
-type objectRefSpec struct {
-	Kind      string `yaml:"kind"`
-	Namespace string `yaml:"namespace"`
-	Labels    map[string]string
-}
-
-type manifest struct {
-	Path   string `yaml:"path"`
-	Action string `yaml:"action"`
-}
-
-func (mf manifest) valid() bool {
-	if mf.Path == "" || mf.Action == "" {
-		log.WarnWithFields(map[string]interface{}{
-			"resource": "manifest",
-			"expected": "Resource Manifest path and action should be specified",
-			"got":      "Path: " + mf.Path + " Action: " + mf.Action,
-		}, "Failed getting the resource to apply.")
-
-		return false
-	}
-
-	return true
 }
 
 // ApplyFile mimics kubectl apply -f. Takes in a path to a file and applies that object to the
@@ -167,26 +122,10 @@ func (mf manifest) apply(expectError bool) (*objectRef, error) {
 		filePath = filepath.Clean(mf.Path)
 	}
 
-	ymlFile, err := ioutil.ReadFile(filePath)
+	objRef, err := mf.getObjectref(filePath)
 	if err != nil {
-		log.Error(err, "Error reading the "+mf.Path+" file.")
+		log.Error(err, "Error Applying action to file")
 		return nil, err
-	}
-
-	viper.SetConfigType("yaml")
-
-	err = viper.ReadConfig(bytes.NewBuffer(ymlFile))
-	if err != nil {
-		log.Error(err, "Error reading test file.")
-	}
-
-	objRef := objectRef{
-		Type: "Resource",
-		Spec: objectRefSpec{
-			Kind:      viper.GetString("kind"),
-			Namespace: viper.GetString("metadata.namespace"),
-			Labels:    viper.GetStringMapString("metadata.labels"),
-		},
 	}
 
 	log.InfoWithFields(map[string]interface{}{
@@ -205,7 +144,6 @@ func (mf manifest) apply(expectError bool) (*objectRef, error) {
 	}
 
 	if err != nil {
-
 		if !expectError {
 			log.WarnWithFields(map[string]interface{}{
 				"Path":   filePath,
@@ -224,5 +162,28 @@ func (mf manifest) apply(expectError bool) (*objectRef, error) {
 		"filepath": filePath,
 	}, string(out))
 
-	return &objRef, err
+	return objRef, err
+}
+
+func (mf manifest) getObjectref(filePath string) (*objectRef, error) {
+	ymlFile, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		log.Error(err, "Error reading the "+mf.Path+" file.")
+		return nil, err
+	}
+	viper.SetConfigType("yaml")
+	err = viper.ReadConfig(bytes.NewBuffer(ymlFile))
+	if err != nil {
+		log.Error(err, "Error reading test file.")
+	}
+
+	objRef := &objectRef{
+		Type: "Resource",
+		Spec: objectRefSpec{
+			Kind:      viper.GetString("kind"),
+			Namespace: viper.GetString("metadata.namespace"),
+			Labels:    viper.GetStringMapString("metadata.labels"),
+		},
+	}
+	return objRef, err
 }

@@ -17,17 +17,20 @@ limitations under the License.
 package cmd
 
 import (
-	"path/filepath"
-
 	"anchorctl/pkg/kubetest"
 	"anchorctl/pkg/logging"
+	"fmt"
+	"github.com/mitchellh/mapstructure"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 	"k8s.io/client-go/util/homedir"
+	"path/filepath"
 )
 
 var description = `
-Test takes in the test steps as config and executes the tests in order.
+test takes in the test steps as config and executes the tests in order.
 
 Example usage: anchorctl test --file test.yaml --kind kubetest
 
@@ -40,12 +43,14 @@ Kinds of tests include:
 	- AssertMutation: Given action, filepath, jsonPath and value, assert jsonpath after applying the object in the file.
 `
 
+var log = &logging.Logger{}
+
 // testCmd represents the test command
 var testCmd = &cobra.Command{
 	Use:   "test",
 	Short: "Command to run Anchor tests",
 	Long:  description,
-	Run:   testExecute,
+	Run:   test,
 }
 
 func init() {
@@ -55,8 +60,6 @@ func init() {
 	// Local Flags
 	testCmd.Flags().StringP("file", "f", "", "Input file with the tests.")
 	testCmd.Flags().StringP("kubeconfig", "c", defaultKubeConfig, "Path to kubeconfig file.")
-	testCmd.Flags().StringP("kind", "k", "kubetest",
-		"Kind of test, only kubetest is supported at the moment.")
 	testCmd.Flags().Float64P("threshold", "t", 80,
 		"Percentage of tests to pass, else return failure.")
 	testCmd.Flags().IntP("verbose", "v", 4,
@@ -64,25 +67,15 @@ func init() {
 	testCmd.Flags().BoolP("incluster", "i", false, "Get kubeconfig from in cluster.")
 }
 
-func testExecute(cmd *cobra.Command, args []string) {
+func test(cmd *cobra.Command, args []string) {
 	verbosity, err := cmd.Flags().GetInt("verbose")
 	if err != nil {
 		logrus.WithFields(logrus.Fields{"flag": "verbose"}).Error("Unable to parse flag. Defaulting to INFO.")
 		verbosity = 4
 	}
-	log := &logging.Logger{}
 	log.SetVerbosity(verbosity)
 
-	kind, err := cmd.Flags().GetString("kind")
-	if err != nil {
-		log.Error(err, "Unable to parse flag. Defaulting to Kubetest.")
-		kind = "kubetest"
-	}
-
-	testfile, err := cmd.Flags().GetString("file")
-	if err != nil {
-		log.Fatal(err, "Failed to parse testfile.")
-	}
+	crd, testPath, err := decodeTestFile(cmd, log)
 
 	threshold, err := cmd.Flags().GetFloat64("threshold")
 	if err != nil {
@@ -90,24 +83,76 @@ func testExecute(cmd *cobra.Command, args []string) {
 		threshold = 100
 	}
 
-	incluster, err := cmd.Flags().GetBool("incluster")
+	test := getTest(crd, log, threshold, testPath, cmd)
+
+	testResult := test.Assert()
+
+	testResult.SetThreshold(threshold)
+	testResult.Render()
+}
+
+func decodeTestFile(cmd *cobra.Command, log *logging.Logger) (*TestCRD, string, error) {
+	testfile, err := cmd.Flags().GetString("file")
 	if err != nil {
-		log.Error(err, "Unable to parse flag. Defaulting to false.")
-		incluster = false
+		log.Fatal(err, "Failed to parse testfile.")
 	}
 
-	kubeconfig, err := cmd.Flags().GetString("kubeconfig")
-	if err != nil && !incluster {
-		log.Fatal(err, "Failed to parse kubeconfig flag")
+	testContents, err := ioutil.ReadFile(filepath.Clean(testfile))
+	if err != nil {
+		log.Fatal(err, "Error reading the test file.")
 	}
 
-	switch kind {
+	testCRD := &TestCRD{}
 
-	case "kubetest":
+	err = yaml.Unmarshal(testContents, &testCRD)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return testCRD, testfile, nil
+}
+
+func getTest(crd *TestCRD, log *logging.Logger, threshold float64, testPath string, cmd *cobra.Command) AnchorTest {
+	var test AnchorTest
+
+	switch crd.Kind {
+
+	case "KubeTest":
+		incluster, err := cmd.Flags().GetBool("incluster")
+		if err != nil {
+			log.Error(err, "Unable to parse flag. Defaulting to false.")
+			incluster = false
+		}
+
+		kubeconfig, err := cmd.Flags().GetString("kubeconfig")
+		if err != nil && !incluster {
+			log.Fatal(err, "Failed to parse kubeconfig flag")
+		}
+
+		kubeTest := &kubetest.KubeTest{
+			Opts:      kubetest.Options{
+				Incluster:  incluster,
+				Kubeconfig: kubeconfig,
+				TestFilepath: testPath,
+				Logger: log,
+			},
+		}
+
+		err = mapstructure.Decode(crd.Spec, &kubeTest)
+		if err != nil {
+			log.Fatal(err, "Error parsing to KubeTest object")
+		}
+
 		log.Info("kind", "kubetest", "Starting Tests")
 
-		kubetest.Assert(log, threshold, incluster, kubeconfig, testfile)
+		test = kubeTest
 
-		log.Info("kind", "kubetest", "Finished Tests")
+
+	default:
+		log.Fatal(fmt.Errorf("Unknown kind "+crd.Kind), "Unknown AnchorTest kind")
 	}
+
+	return test
+
 }
+
