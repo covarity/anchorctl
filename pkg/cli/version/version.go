@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+package version
 
 import (
 	"fmt"
@@ -28,8 +28,8 @@ var (
 	Build   = "build"
 )
 
-// versionCmd represents the version command
-var versionCmd = &cobra.Command{
+// Cmd represents the version command
+var Cmd = &cobra.Command{
 	Use:   "version",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
@@ -46,8 +46,4 @@ to quickly create a Cobra application.`,
 		fmt.Println("Build " + Build)
 		fmt.Println()
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(versionCmd)
 }

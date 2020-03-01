@@ -87,8 +87,8 @@ func TestAddResultToRow(t *testing.T) {
 	//}
 
 	//for _, table := range tables {
-		//table.obj.addResultToRow(table.row, table.addStr)
-		//assert.Equal(t, table.expected, table.obj.testRuns[table.checkRow][table.checkCol], table.message)
+	//table.obj.addResultToRow(table.row, table.addStr)
+	//assert.Equal(t, table.expected, table.obj.testRuns[table.checkRow][table.checkCol], table.message)
 	//}
 
 }

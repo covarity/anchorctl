@@ -16,7 +16,7 @@ BINARY := anchorctl
 LDFLAGS=-ldflags "-X=anchorctl/pkg/cmd.Version=$(VERSION) -X=anchorctl/pkg/cmd.Build=$(BUILD)"
 
 # go source files, ignore vendor directory
-SRC = $(shell find . -type d -name '*.go' -not -path "./vendor/*")
+SRC = $(shell find . -type f -name '*.go' -exec dirname {} \;| sort -u)
 
 .PHONY: fmt lint build run docker
 
@@ -24,19 +24,19 @@ fmt:
 	@gofmt -s -w .
 
 lint:
-	@golint -set_exit_status ./pkg/cmd ./pkg/logging ./pkg/kubetest ./pkg/resultaggregator ./cmd
+	@golint -set_exit_status ${SRC}
 
 test:
-	@go test -v ./pkg/cmd ./pkg/logging ./pkg/kubetest ./cmd
+	@go test -v ${SRC}
 
 test-coverage:
-	@go test -short -coverprofile cover.out -covermode=atomic ./pkg/cmd ./pkg/logging ./pkg/kubetest ./pkg/resultaggregator ./cmd
+	@go test -short -coverprofile cover.out -covermode=atomic ${SRC}
 	@cat cover.out >> coverage.txt
 
 build:
 	@go build $(LDFLAGS) -o ./anchorctl -v ./cmd/main.go
 
-run: fmt lint build
+run: fmt build
 	./anchorctl test -f ./samples/kube-test.yaml -v 5
 
 docker:

@@ -11,26 +11,33 @@ import (
 
 var log *logging.Logger
 
-func SetLogger(log logging.Logger) {
-	log = log
-}
-
 func (res *TestResult) Render() {
 	res.printTests()
 	res.printSummary()
 	res.checkThresholdPass()
 }
 
-func NewTestResult(len int) *TestResult {
+func NewTestResult(len int, logger *logging.Logger) *TestResult {
+	log = logger
 	return &TestResult{
-		total:        len,
-		testRuns:     []TestRun{},
+		total:    len,
+		testRuns: []TestRun{},
+	}
+}
+
+func NewTestRun(testType string, desc string) *TestRun {
+	return &TestRun{
+		TestType: testType,
+		Desc:     desc,
+		Passed:   false,
+		Invalid:  false,
 	}
 }
 
 func (res *TestResult) AddInvalidTestRun(testType string, err error) *TestRun {
+	log.Warn("Error", err.Error(), "Decoding "+testType+" returned error")
 	return &TestRun{
-		Index: len(res.testRuns) + 1,
+		Index:    len(res.testRuns) + 1,
 		TestType: testType,
 		Desc:     err.Error(),
 		Passed:   false,
@@ -62,10 +69,10 @@ func (res *TestResult) printTests() {
 	printer.HeaderBgColor = tablewriter.BgBlackColor
 	printer.HeaderFgColor = tablewriter.FgGreenColor
 
-	fmt.Println("===================================")
-
+	fmt.Println("=========================================================================================================")
+	fmt.Println()
+	fmt.Println("Test Runs")
 	tableprinter.Print(os.Stdout, res.testRuns)
-
 	fmt.Println()
 }
 
@@ -102,7 +109,8 @@ func (res *TestResult) printSummary() {
 	testSumamry.SetBorder(false)
 	testSumamry.AppendBulk(data)
 
+	fmt.Println("Test Summary")
 	fmt.Println()
 	testSumamry.Render()
-	fmt.Println("===================================")
+	fmt.Println("=========================================================================================================")
 }

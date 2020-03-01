@@ -21,8 +21,8 @@ THE SOFTWARE.
 */
 package main
 
-import "anchorctl/pkg/cmd"
+import "anchorctl/pkg/cli"
 
 func main() {
-	cmd.Execute()
+	cli.Execute()
 }

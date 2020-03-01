@@ -20,9 +20,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
-package cmd
+package cli
 
 import (
+	"anchorctl/pkg/cli/test"
+	"anchorctl/pkg/cli/version"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -53,6 +55,8 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	rootCmd.AddCommand(test.Cmd)
+	rootCmd.AddCommand(version.Cmd)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is current dir)")
 	rootCmd.PersistentFlags().IntP("verbose", "v", 3, "Verbose level, Accepts 1-7")
 }

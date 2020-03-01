@@ -4,11 +4,12 @@
 
 # Anchorctl
 
-Anchorctl is a command line utility to enable a test driven approach to developing on distributed systems like Kubernetes. The utility
+Anchorctl is a command line utility that enables a test driven approach to developing distributed systems like Kubernetes. The utility
 works in conjunction with Anchor kubernetes controller (Under development) to create a CRD based user experience for testing systems.
 
 The kinds of tests supported are:
-- KubeTest: A collection of tests that are specifically related to the Kubernetes Ecosystem such as asserting the functionality of admission controllers, asserting the value of jsonpaths and networkpolicies (under development).
+- KubeTest: A collection of tests that are specifically related to the Kubernetes Ecosystem such as asserting the 
+functionality of admission controllers, asserting the value of jsonpaths, and testing networkpolicies (under development).
 
 
 ## Installation
@@ -78,6 +79,8 @@ lifecycle:
     action: "DELETE"
 ```
 
+![Lifecycle](./docs/assets/anchorctl-lifecycle.png)
+
 ---
 
 ## Tests
@@ -106,6 +109,8 @@ Using this type of test, we can test the status of a deployment / pod, the numbe
           hello: world
 ```
 
+![Lifecycle](./docs/assets/assert-jsonpath.png)
+
 - `AssertValidation`: Used to ensure that the validation admission controller throw the expected error. Take a file and
 an action, applies the action to the file and assert that the error equals the expected error.
 
@@ -119,6 +124,8 @@ an action, applies the action to the file and assert that the error equals the e
       path: "./samples/fixtures/loadbalancer.yaml"
       action: CREATE
 ```
+
+![Lifecycle](./docs/assets/assert-validation.png)
 
 - `AssertMutation`: Used to ensure that the mutating admission controller mutates the kubernetes object upon creation
 as expected.
@@ -135,6 +142,8 @@ as expected.
       action: CREATE
 
 ```
+
+![Lifecycle](./docs/assets/assert-mutation.png)
 
 ### Prerequisites
 

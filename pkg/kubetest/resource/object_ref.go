@@ -1,13 +1,15 @@
-package kubetest
+package resource
 
 import (
+	"anchorctl/pkg/logging"
 	"bytes"
 	"fmt"
 	"github.com/spf13/viper"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/runtime"
-
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/gengo/namer"
@@ -16,7 +18,32 @@ import (
 	"path/filepath"
 )
 
-func (ob objectRef) getObject(client *kubernetes.Clientset) ([]runtime.Object, error) {
+var log *logging.Logger
+var TestFilePath string
+
+type Resource struct {
+	ObjectRef objectRef `yaml:"objectRef"`
+	Manifest  Manifest  `yaml:"Manifest"`
+}
+
+type objectRef struct {
+	Type string        `yaml:"type"`
+	Spec objectRefSpec `yaml:"spec"`
+}
+
+type objectRefSpec struct {
+	Kind      string `yaml:"kind"`
+	Namespace string `yaml:"namespace"`
+	Container string `yaml:"container,omitempty"`
+	Labels    map[string]string
+}
+
+type Manifest struct {
+	Path   string `yaml:"path"`
+	Action string `yaml:"action"`
+}
+
+func (ob objectRef) GetObject(client *kubernetes.Clientset) ([]runtime.Object, error) {
 
 	if valid := ob.valid(); !valid {
 		return nil, fmt.Errorf("assertJSONPath object ref is invalid")
@@ -109,15 +136,15 @@ func pluralise(str string) string {
 
 // ApplyFile mimics kubectl apply -f. Takes in a path to a file and applies that object to the
 // cluster and returns the applied object.
-func (mf manifest) apply(expectError bool) (*objectRef, error) {
+func (mf Manifest) Apply(expectError bool) (*objectRef, error) {
 
 	if valid := mf.valid(); !valid {
 		return nil, fmt.Errorf("invalid Manifest to apply")
 	}
 
 	var filePath string
-	if testFilePath != "" {
-		filePath = filepath.Clean(filepath.Join(filepath.Dir(testFilePath), mf.Path))
+	if TestFilePath != "" {
+		filePath = filepath.Clean(filepath.Join(filepath.Dir(TestFilePath), mf.Path))
 	} else {
 		filePath = filepath.Clean(mf.Path)
 	}
@@ -165,7 +192,7 @@ func (mf manifest) apply(expectError bool) (*objectRef, error) {
 	return objRef, err
 }
 
-func (mf manifest) getObjectref(filePath string) (*objectRef, error) {
+func (mf Manifest) getObjectref(filePath string) (*objectRef, error) {
 	ymlFile, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		log.Error(err, "Error reading the "+mf.Path+" file.")
@@ -174,7 +201,7 @@ func (mf manifest) getObjectref(filePath string) (*objectRef, error) {
 	viper.SetConfigType("yaml")
 	err = viper.ReadConfig(bytes.NewBuffer(ymlFile))
 	if err != nil {
-		log.Error(err, "Error reading test file.")
+		log.Error(err, "Error reading Test file.")
 	}
 
 	objRef := &objectRef{
@@ -186,4 +213,48 @@ func (mf manifest) getObjectref(filePath string) (*objectRef, error) {
 		},
 	}
 	return objRef, err
+}
+
+func listPods(client *kubernetes.Clientset, namespace string, listOptions metav1.ListOptions) ([]v1.Pod, error) {
+	pods, err := client.CoreV1().Pods(namespace).List(listOptions)
+	return pods.Items, err
+}
+
+func (ob objectRef) valid() bool {
+	if ob.Type == "" || ob.Spec.Kind == "" || ob.Spec.Namespace == "" ||
+		ob.Spec.Labels == nil {
+
+		log.WarnWithFields(map[string]interface{}{
+			"Resource": "objectRef",
+			"expected": "Resource ObjectRef type, kind, namespace, label value and label key should be specified",
+			"got":      "Type: " + ob.Type + " Kind: " + ob.Spec.Kind + " Namespace: " + ob.Spec.Namespace,
+		}, "Failed getting the Resource to apply.")
+
+		return false
+	}
+
+	return true
+}
+
+func (mf Manifest) valid() bool {
+	if mf.Path == "" || mf.Action == "" {
+		log.WarnWithFields(map[string]interface{}{
+			"Resource": "Manifest",
+			"expected": "Resource Manifest path and action should be specified",
+			"got":      "Path: " + mf.Path + " Action: " + mf.Action,
+		}, "Failed getting the Resource to apply.")
+
+		return false
+	}
+
+	return true
+}
+
+func ExecuteLifecycle(manifests []Manifest) {
+	for _, i := range manifests {
+		_, err := i.Apply(false)
+		if err != nil {
+			log.Fatal(err, "Failed Lifecycle steps")
+		}
+	}
 }

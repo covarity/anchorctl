@@ -14,7 +14,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+package test
 
 import (
 	"anchorctl/pkg/kubetest"
@@ -45,26 +45,31 @@ Kinds of tests include:
 
 var log = &logging.Logger{}
 
-// testCmd represents the test command
-var testCmd = &cobra.Command{
+// Cmd represents the test command
+var Cmd = &cobra.Command{
 	Use:   "test",
 	Short: "Command to run Anchor tests",
 	Long:  description,
 	Run:   test,
 }
 
+type TestKind string
+
+var (
+	KubeTest TestKind = "KubeTest"
+)
+
 func init() {
 	var defaultKubeConfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
 
-	rootCmd.AddCommand(testCmd)
 	// Local Flags
-	testCmd.Flags().StringP("file", "f", "", "Input file with the tests.")
-	testCmd.Flags().StringP("kubeconfig", "c", defaultKubeConfig, "Path to kubeconfig file.")
-	testCmd.Flags().Float64P("threshold", "t", 80,
+	Cmd.Flags().StringP("file", "f", "", "Input file with the tests.")
+	Cmd.Flags().StringP("kubeconfig", "c", defaultKubeConfig, "Path to kubeconfig file.")
+	Cmd.Flags().Float64P("threshold", "t", 80,
 		"Percentage of tests to pass, else return failure.")
-	testCmd.Flags().IntP("verbose", "v", 4,
+	Cmd.Flags().IntP("verbose", "v", 4,
 		"Verbosity Level, choose between 1 being Fatal - 7 being .")
-	testCmd.Flags().BoolP("incluster", "i", false, "Get kubeconfig from in cluster.")
+	Cmd.Flags().BoolP("incluster", "i", false, "Get kubeconfig from in cluster.")
 }
 
 func test(cmd *cobra.Command, args []string) {
@@ -83,7 +88,7 @@ func test(cmd *cobra.Command, args []string) {
 		threshold = 100
 	}
 
-	test := getTest(crd, log, threshold, testPath, cmd)
+	test := getTest(crd, log, testPath, cmd)
 
 	testResult := test.Assert()
 
@@ -91,7 +96,7 @@ func test(cmd *cobra.Command, args []string) {
 	testResult.Render()
 }
 
-func decodeTestFile(cmd *cobra.Command, log *logging.Logger) (*TestCRD, string, error) {
+func decodeTestFile(cmd *cobra.Command, log *logging.Logger) (*AnchorCRD, string, error) {
 	testfile, err := cmd.Flags().GetString("file")
 	if err != nil {
 		log.Fatal(err, "Failed to parse testfile.")
@@ -102,7 +107,7 @@ func decodeTestFile(cmd *cobra.Command, log *logging.Logger) (*TestCRD, string, 
 		log.Fatal(err, "Error reading the test file.")
 	}
 
-	testCRD := &TestCRD{}
+	testCRD := &AnchorCRD{}
 
 	err = yaml.Unmarshal(testContents, &testCRD)
 	if err != nil {
@@ -112,12 +117,11 @@ func decodeTestFile(cmd *cobra.Command, log *logging.Logger) (*TestCRD, string, 
 	return testCRD, testfile, nil
 }
 
-func getTest(crd *TestCRD, log *logging.Logger, threshold float64, testPath string, cmd *cobra.Command) AnchorTest {
-	var test AnchorTest
+func getTest(crd *AnchorCRD, log *logging.Logger, testPath string, cmd *cobra.Command) AnchorTest {
 
 	switch crd.Kind {
 
-	case "KubeTest":
+	case KubeTest:
 		incluster, err := cmd.Flags().GetBool("incluster")
 		if err != nil {
 			log.Error(err, "Unable to parse flag. Defaulting to false.")
@@ -130,11 +134,11 @@ func getTest(crd *TestCRD, log *logging.Logger, threshold float64, testPath stri
 		}
 
 		kubeTest := &kubetest.KubeTest{
-			Opts:      kubetest.Options{
-				Incluster:  incluster,
-				Kubeconfig: kubeconfig,
+			Opts: kubetest.Options{
+				Incluster:    incluster,
+				Kubeconfig:   kubeconfig,
 				TestFilepath: testPath,
-				Logger: log,
+				Logger:       log,
 			},
 		}
 
@@ -143,16 +147,13 @@ func getTest(crd *TestCRD, log *logging.Logger, threshold float64, testPath stri
 			log.Fatal(err, "Error parsing to KubeTest object")
 		}
 
-		log.Info("kind", "kubetest", "Starting Tests")
+		log.Info("kind", "kubetest", "Decoded Tests")
 
-		test = kubeTest
-
+		return kubeTest
 
 	default:
-		log.Fatal(fmt.Errorf("Unknown kind "+crd.Kind), "Unknown AnchorTest kind")
+		log.Fatal(fmt.Errorf("Unknown kind "+string(crd.Kind)), "Unknown AnchorTest kind. Accepted kinds: ")
+		return nil
 	}
 
-	return test
-
 }
-
