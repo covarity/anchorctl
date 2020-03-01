@@ -94,7 +94,7 @@ The types of Kubernetes tests include:
 Using this type of test, we can test the status of a deployment / pod, the number of replicas and anything else that is accessible in the yaml output of Kubernetes objects.
 
 ```yaml
-# Assert that Pods in namespace applications with label hello=world is scheduled on the docker-desktop node.
+# Assert that Pods in namespace applications with label hello=world is running the nginx docker image.
 - type: AssertJSONPath
   spec:
     jsonPath: ".spec.containers[0].image"
@@ -109,7 +109,7 @@ Using this type of test, we can test the status of a deployment / pod, the numbe
           hello: world
 ```
 
-![Lifecycle](./docs/assets/assert-jsonpath.png)
+![AssertJSONPath](./docs/assets/assert-jsonpath.png)
 
 - `AssertValidation`: Used to ensure that the validation admission controller throw the expected error. Take a file and
 an action, applies the action to the file and assert that the error equals the expected error.
@@ -125,13 +125,13 @@ an action, applies the action to the file and assert that the error equals the e
       action: CREATE
 ```
 
-![Lifecycle](./docs/assets/assert-validation.png)
+![AssertValidation](./docs/assets/assert-validation.png)
 
 - `AssertMutation`: Used to ensure that the mutating admission controller mutates the kubernetes object upon creation
 as expected.
 
 ```yaml
-# Assert that after creating the resources in .resource.manifest.path, the jsonpath of the object created has defined value.
+# Assert that after creating the resources in .resource.manifest.path, the function label of the object is equal to workload.
 - type: AssertMutation
   spec:
     jsonPath: ".metadata.labels.function"
@@ -143,7 +143,26 @@ as expected.
 
 ```
 
-![Lifecycle](./docs/assets/assert-mutation.png)
+![AssertMutation](./docs/assets/assert-mutation.png)
+
+- `AssertExec`: Execute a command inside a container and assert that the output contains the expected string
+
+```yaml
+  - type: AssertExec
+    spec:
+      command:
+      - /opa
+      - version
+      contains: "Version: 0.13.4"
+    resource:
+      objectRef:
+        type: Resource
+        spec:
+          kind: Pod
+          namespace: opa
+          labels:
+            app: opa
+```
 
 ### Prerequisites
 
