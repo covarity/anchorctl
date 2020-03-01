@@ -10,10 +10,10 @@ spec:
     - path: "./fixtures/hello-world-nginx.yaml"
       action: "CREATE"
     preStop:
-      - path: "./fixtures/hello-world-nginx.yaml"
-        action: "DELETE"
-      - path: "./fixtures/applications-ns.yaml"
-        action: "DELETE"
+    - path: "./fixtures/hello-world-nginx.yaml"
+      action: "DELETE"
+    - path: "./fixtures/applications-ns.yaml"
+      action: "DELETE"
   tests:
   - type: AssertJSONPath
     spec:
@@ -42,11 +42,17 @@ spec:
       manifest:
         path: "./fixtures/deploy.yaml"
         action: CREATE
-  - type: AssertMutation
+  - type: AssertExec
     spec:
-      jsonPath: ".metadata.labels.billing-information"
-      value: "DEMO-BILLING"
+      command:
+      - /opa
+      - version
+      contains: "Version: 0.13.4"
     resource:
-      manifest:
-        path: "./fixtures/demo-deploy.yaml"
-        action: CREATE
+      objectRef:
+        type: Resource
+        spec:
+          kind: Pod
+          namespace: opa
+          labels:
+            app: opa

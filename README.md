@@ -4,11 +4,12 @@
 
 # Anchorctl
 
-Anchorctl is a command line utility to enable a test driven approach to developing on distributed systems like Kubernetes. The utility
+Anchorctl is a command line utility that enables a test driven approach to developing distributed systems like Kubernetes. The utility
 works in conjunction with Anchor kubernetes controller (Under development) to create a CRD based user experience for testing systems.
 
 The kinds of tests supported are:
-- KubeTest: A collection of tests that are specifically related to the Kubernetes Ecosystem such as asserting the functionality of admission controllers, asserting the value of jsonpaths and networkpolicies (under development).
+- KubeTest: A collection of tests that are specifically related to the Kubernetes Ecosystem such as asserting the 
+functionality of admission controllers, asserting the value of jsonpaths, and testing networkpolicies (under development).
 
 
 ## Installation
@@ -78,6 +79,8 @@ lifecycle:
     action: "DELETE"
 ```
 
+![Lifecycle](./docs/assets/anchorctl-lifecycle.png)
+
 ---
 
 ## Tests
@@ -91,7 +94,7 @@ The types of Kubernetes tests include:
 Using this type of test, we can test the status of a deployment / pod, the number of replicas and anything else that is accessible in the yaml output of Kubernetes objects.
 
 ```yaml
-# Assert that Pods in namespace applications with label hello=world is scheduled on the docker-desktop node.
+# Assert that Pods in namespace applications with label hello=world is running the nginx docker image.
 - type: AssertJSONPath
   spec:
     jsonPath: ".spec.containers[0].image"
@@ -105,6 +108,8 @@ Using this type of test, we can test the status of a deployment / pod, the numbe
         labels:
           hello: world
 ```
+
+![AssertJSONPath](./docs/assets/assert-jsonpath.png)
 
 - `AssertValidation`: Used to ensure that the validation admission controller throw the expected error. Take a file and
 an action, applies the action to the file and assert that the error equals the expected error.
@@ -120,11 +125,13 @@ an action, applies the action to the file and assert that the error equals the e
       action: CREATE
 ```
 
+![AssertValidation](./docs/assets/assert-validation.png)
+
 - `AssertMutation`: Used to ensure that the mutating admission controller mutates the kubernetes object upon creation
 as expected.
 
 ```yaml
-# Assert that after creating the resources in .resource.manifest.path, the jsonpath of the object created has defined value.
+# Assert that after creating the resources in .resource.manifest.path, the function label of the object is equal to workload.
 - type: AssertMutation
   spec:
     jsonPath: ".metadata.labels.function"
@@ -134,6 +141,27 @@ as expected.
       path: "./samples/fixtures/deploy.yaml"
       action: CREATE
 
+```
+
+![AssertMutation](./docs/assets/assert-mutation.png)
+
+- `AssertExec`: Execute a command inside a container and assert that the output contains the expected string
+
+```yaml
+  - type: AssertExec
+    spec:
+      command:
+      - /opa
+      - version
+      contains: "Version: 0.13.4"
+    resource:
+      objectRef:
+        type: Resource
+        spec:
+          kind: Pod
+          namespace: opa
+          labels:
+            app: opa
 ```
 
 ### Prerequisites

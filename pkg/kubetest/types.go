@@ -1,50 +1,30 @@
 package kubetest
 
 import (
-	"k8s.io/client-go/kubernetes"
+	"anchorctl/pkg/kubetest/resource"
+	"anchorctl/pkg/logging"
 )
 
-type kubeTest struct {
-	APIVersion string `yaml:"apiVersion"`
-	Kind       string
-	Metadata   metadata
-	Spec       kubeTestSpec
-}
-
-type kubeTestSpec struct {
+type KubeTest struct {
 	Lifecycle lifecycle `yaml:"lifecycle"`
 	Tests     []test
+	Opts      Options
 }
 
 type test struct {
-	Resource resource `yaml:"resource"`
-	Type     string
+	Resource resource.Resource `yaml:"Resource"`
+	Type     TestType
 	Spec     map[string]interface{}
 }
 
-type metadata struct {
-	Name      string
-	Namespace string
-	Labels    map[string]string
+type Options struct {
+	Incluster    bool
+	Kubeconfig   string
+	TestFilepath string
+	Logger       *logging.Logger
 }
 
-type kubeTester interface {
-	test(res *resource) (bool, error)
-}
-
-type jsonTest struct {
-	JSONPath string
-	Value    string
-	client   *kubernetes.Clientset
-}
-
-type validationTest struct {
-	ContainsResponse string `yaml:"containsResponse"`
-	client           *kubernetes.Clientset
-}
-
-type mutationTest struct {
-	JSONPath string
-	Value    string
-	client   *kubernetes.Clientset
+type lifecycle struct {
+	PostStart []resource.Manifest `yaml:"postStart"`
+	PreStop   []resource.Manifest `yaml:"preStop"`
 }

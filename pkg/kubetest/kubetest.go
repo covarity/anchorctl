@@ -1,118 +1,97 @@
 package kubetest
 
 import (
+	"anchorctl/pkg/kubetest/assertexec"
+	"anchorctl/pkg/kubetest/assertjsonpath"
+	"anchorctl/pkg/kubetest/assertmutation"
+	"anchorctl/pkg/kubetest/assertvalidation"
+	"anchorctl/pkg/kubetest/common"
+	"anchorctl/pkg/kubetest/resource"
 	"anchorctl/pkg/logging"
-	"github.com/mitchellh/mapstructure"
+	"anchorctl/pkg/resultaggregator"
+	"fmt"
 	"k8s.io/client-go/kubernetes"
 )
 
-var log *logging.Logger
-var testFilePath string
+type TestType string
+
+var (
+	AssertJSONPath   TestType = "AssertJSONPath"
+	AssertValidation TestType = "AssertValidation"
+	AssertMutation   TestType = "AssertMutation"
+	AssertExec       TestType = "AssertExec"
+
+	log *logging.Logger
+
+	testImpl = map[TestType]func(clientset *kubernetes.Clientset, log *logging.Logger, input interface{}) (common.KubeTester, error){}
+)
+
+func init() {
+	testImpl[AssertJSONPath] = assertjsonpath.Parse
+	testImpl[AssertExec] = assertexec.Parse
+	testImpl[AssertValidation] = assertvalidation.Parse
+	testImpl[AssertMutation] = assertmutation.Parse
+}
 
 // Assert function contains the logic to execute kubetests
-func Assert(logger *logging.Logger, threshold float64, incluster bool, kubeconfig, testfile string) {
-	log = logger
+func (kt *KubeTest) Assert() *resultaggregator.TestResult {
 
-	client, err := getKubeClient(incluster, kubeconfig)
+	resource.TestFilePath = kt.Opts.TestFilepath
+	log = kt.Opts.Logger
+
+	client, err := common.GetKubeClient(kt.Opts.Incluster, kt.Opts.Kubeconfig)
 	if err != nil {
 		log.Fatal(err, "Unable to get kubernetes client")
 	}
 
-	testFilePath = testfile
+	log.Info("state", "Post-Start", "Starting post start lifecycle")
 
-	kubeTest, err := decodeTestFile(testFilePath)
-	if err != nil {
-		log.Fatal(err, "Unable to decode test file")
-	}
+	resource.ExecuteLifecycle(kt.Lifecycle.PostStart)
 
-	executeLifecycle(kubeTest.Spec.Lifecycle.PostStart)
+	log.Info("state", "Tests", "Starting kube tests")
 
-	results := runTests(client, kubeTest)
-	results.threshold = threshold
-	results.total = len(kubeTest.Spec.Tests)
-	results.print()
+	results := runTests(client, kt)
 
-	executeLifecycle(kubeTest.Spec.Lifecycle.PreStop)
+	log.Info("state", "Pre-Stop", "Starting pre stop lifecycle")
 
-	results.checkThresholdPass()
+	resource.ExecuteLifecycle(kt.Lifecycle.PreStop)
 
-	log.Info("Passed", "true", "Passed Test")
+	log.Info("state", "Finished", "Finished Running Kube Tests")
+	return results
+
 }
 
-func runTests(client *kubernetes.Clientset, kubeTest *kubeTest) *testResult {
-	res := testResult{
-		total: len(kubeTest.Spec.Tests),
-	}
+func runTests(client *kubernetes.Clientset, kubeTest *KubeTest) *resultaggregator.TestResult {
+	res := resultaggregator.NewTestResult(len(kubeTest.Tests), log)
 
-	for i, test := range kubeTest.Spec.Tests {
-		switch test.Type {
-
-		case "AssertJSONPath":
-			var jsonTestObj *jsonTest
-
-			res.addResultToRow(i, "AssertJSONPath")
-
-			err := mapstructure.Decode(test.Spec, &jsonTestObj)
-			res.addResultToRow(i, "JSONPath: "+jsonTestObj.JSONPath+" Value: "+jsonTestObj.Value)
-
-			if err != nil {
-				res.invalid++
-				res.addResultToRow(i, "❌")
-				log.Warn("Error", err.Error(), "Decoding AssertJSONPath returned error")
-
-				continue
-			}
-			jsonTestObj.client = client
-			runKubeTester(jsonTestObj, &test, &res, i)
-
-		case "AssertValidation":
-			var validationTest *validationTest
-
-			res.addResultToRow(i, "AssertValidation")
-			err := mapstructure.Decode(test.Spec, &validationTest)
-			res.addResultToRow(i, "Expected Response: "+validationTest.ContainsResponse[:25]+"...")
-
-			if err != nil {
-				res.invalid++
-				res.addResultToRow(i, "❌")
-				log.Warn("Error", err.Error(), "Decoding AssertValidation returned error")
-
-				continue
-			}
-			validationTest.client = client
-			runKubeTester(validationTest, &test, &res, i)
-
-		case "AssertMutation":
-			var mutationTest *mutationTest
-
-			res.addResultToRow(i, "AssertMutation")
-			err := mapstructure.Decode(test.Spec, &mutationTest)
-			res.addResultToRow(i, "JSONPath: "+mutationTest.JSONPath+" Value "+mutationTest.Value)
-
-			if err != nil {
-				res.invalid++
-				res.addResultToRow(i, "❌")
-				log.Warn("Error", err.Error(), "Decoding AssertMutation returned error")
-
-				continue
-			}
-			mutationTest.client = client
-			runKubeTester(mutationTest, &test, &res, i)
+	for _, test := range kubeTest.Tests {
+		tester, err := getTest(test, client)
+		if err != nil {
+			res.AddInvalidTestRun(string(test.Type), err)
+			continue
 		}
+
+		if valid, err := tester.Valid(&test.Resource); !valid {
+			res.AddInvalidTestRun(string(test.Type), err)
+			continue
+		}
+
+		res.AddRun(tester.Test(&test.Resource))
 	}
 
-	return &res
+	return res
 }
 
-func runKubeTester(kubetester kubeTester, test *test, res *testResult, i int) {
-	if result, err := kubetester.test(&test.Resource); err != nil {
-		res.addResultToRow(i, "❌")
-		res.invalid++
-	} else if !result {
-		res.addResultToRow(i, "❌")
-		res.failed++
-	} else {
-		res.addResultToRow(i, "✅")
-		res.passed++
+func getTest(test test, client *kubernetes.Clientset) (common.KubeTester, error) {
+
+	if constructTest, ok := testImpl[test.Type]; ok {
+		theTest, err := constructTest(client, log, test.Spec)
+		if err != nil {
+			log.Warn("Type", string(test.Type), "Error parsing test")
+			return nil, fmt.Errorf("Type", string(test.Type), "Error parsing test")
+		}
+		return theTest, nil
 	}
+
+	return nil, fmt.Errorf("Unknown Test type")
 }
