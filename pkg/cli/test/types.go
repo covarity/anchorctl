@@ -1,4 +1,4 @@
-package cmd
+package test
 
 import (
 	"anchorctl/pkg/resultaggregator"
@@ -9,9 +9,9 @@ type AnchorTest interface {
 	//Verify(tester anchorTest) bool
 }
 
-type TestCRD struct {
+type AnchorCRD struct {
 	APIVersion string `yaml:"apiVersion"`
-	Kind       string
+	Kind       TestKind
 	Metadata   metadata
 	Spec       map[string]interface{}
 }

@@ -81,6 +81,9 @@ func test(cmd *cobra.Command, args []string) {
 	log.SetVerbosity(verbosity)
 
 	crd, testPath, err := decodeTestFile(cmd, log)
+	if err != nil {
+		log.Fatal(err, "Unable to decode test file.")
+	}
 
 	threshold, err := cmd.Flags().GetFloat64("threshold")
 	if err != nil {

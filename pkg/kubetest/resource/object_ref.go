@@ -3,9 +3,7 @@ package resource
 import (
 	"anchorctl/pkg/logging"
 	"fmt"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -32,7 +30,6 @@ type objectRefSpec struct {
 	Container string `yaml:"container,omitempty"`
 	Labels    map[string]string
 }
-
 
 func (ob objectRef) GetObject(client *kubernetes.Clientset) ([]runtime.Object, error) {
 
@@ -123,12 +120,6 @@ func pluralise(str string) string {
 	}
 
 	return pluralise.Name(&pluralType)
-}
-
-
-func listPods(client *kubernetes.Clientset, namespace string, listOptions metav1.ListOptions) ([]v1.Pod, error) {
-	pods, err := client.CoreV1().Pods(namespace).List(listOptions)
-	return pods.Items, err
 }
 
 func (ob objectRef) valid() bool {

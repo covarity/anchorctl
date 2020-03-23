@@ -88,7 +88,7 @@ func getTest(test test, client *kubernetes.Clientset) (common.KubeTester, error)
 		theTest, err := constructTest(client, log, test.Spec)
 		if err != nil {
 			log.Warn("Type", string(test.Type), "Error parsing test")
-			return nil, fmt.Errorf("Type", string(test.Type), "Error parsing test")
+			return nil, fmt.Errorf("type %s Error parsing test", string(test.Type))
 		}
 		return theTest, nil
 	}
