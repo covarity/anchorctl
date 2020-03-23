@@ -8,7 +8,7 @@ Anchorctl is a command line utility that enables a test driven approach to devel
 works in conjunction with Anchor kubernetes controller (Under development) to create a CRD based user experience for testing systems.
 
 The kinds of tests supported are:
-- KubeTest: A collection of tests that are specifically related to the Kubernetes Ecosystem such as asserting the 
+- KubeTest: A collection of tests that are specifically related to the Kubernetes Ecosystem such as asserting the
 functionality of admission controllers, asserting the value of jsonpaths, and testing networkpolicies (under development).
 
 
